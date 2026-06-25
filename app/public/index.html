@@ -37,34 +37,85 @@
     </div>
 
     <div class="sidebar-section">
-      <h3>📍 Ferramentas de Mapa</h3>
-      <p style="font-size:12px; color:#888; margin-bottom:10px;">Use os controles no mapa para desenhar o polígono da área queimada.</p>
-      <button class="btn btn-secondary btn-sm" onclick="clearDrawing()" style="width:100%; margin-bottom:6px;">🗑️ Limpar Desenho</button>
-      <div class="coords-display" id="coords-display">Nenhum polígono desenhado.</div>
-    </div>
-
-    <div class="sidebar-section">
       <h3>🔥 Registrar Incêndio</h3>
+
       <div class="form-group">
         <label>Município</label>
         <input type="text" id="municipio" placeholder="Nome do município">
       </div>
+
       <div class="form-group">
         <label>Causa provável</label>
         <select id="causa">
           <option value="">Selecione...</option>
-          <option value="raio">Raio</option>
-          <option value="queima_controlada">Queima Controlada</option>
-          <option value="acidente">Acidente</option>
-          <option value="criminoso">Criminoso (Incêndio Doloso)</option>
-          <option value="desconhecida">Desconhecida</option>
+          <option value="raio">⚡ Raio</option>
+          <option value="queima_controlada">🔥 Queima Controlada</option>
+          <option value="acidente">⚠️ Acidente</option>
+          <option value="criminoso">🚨 Criminoso (Incêndio Doloso)</option>
+          <option value="desconhecida">❓ Desconhecida</option>
         </select>
       </div>
+
       <div class="form-group">
         <label>Descrição</label>
-        <textarea id="descricao" rows="2" placeholder="Descreva a ocorrência..." style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;padding:10px;font-size:13px;width:100%;resize:vertical;"></textarea>
+        <textarea id="descricao" rows="2" placeholder="Descreva a ocorrência..."></textarea>
       </div>
-      <button class="btn btn-primary" onclick="openSaveModal()" style="width:100%">💾 Registrar Incêndio</button>
+
+      <!-- ÁREA QUEIMADA -->
+      <div class="area-card" id="area-card">
+        <div class="area-card-header">
+          <span>📍 Área Queimada</span>
+          <span class="area-badge" id="area-badge">Não marcada</span>
+        </div>
+        <div class="area-card-body">
+          <button class="btn-area-mode" id="btn-modo-poligono" onclick="ativarModo('poligono')">
+            <span class="area-mode-icon">✏️</span>
+            <span>Desenhar no Mapa</span>
+          </button>
+          <button class="btn-area-mode" id="btn-modo-gps" onclick="ativarModo('gps')">
+            <span class="area-mode-icon">📡</span>
+            <span>Rastrear por GPS</span>
+          </button>
+          <button class="btn-area-mode" id="btn-modo-coords" onclick="ativarModo('coords')">
+            <span class="area-mode-icon">📌</span>
+            <span>Por Coordenadas</span>
+          </button>
+        </div>
+
+        <!-- GPS em andamento -->
+        <div id="gps-panel" style="display:none; margin-top:10px;">
+          <div class="gps-status">
+            <span class="dot dot-yellow blink" id="gps-dot"></span>
+            <span id="gps-status-text">Aguardando GPS...</span>
+          </div>
+          <div style="font-size:11px; color:#888; margin:6px 0;">Ande pelas bordas da área queimada. O GPS registrará automaticamente os pontos.</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-danger btn-sm" onclick="pararGPS()" style="flex:1">⏹️ Parar</button>
+            <button class="btn btn-secondary btn-sm" onclick="adicionarPontoGPSManual()" style="flex:1">📍 + Ponto</button>
+          </div>
+          <div style="font-size:11px; color:#aaa; margin-top:6px;" id="gps-points-count">0 pontos registrados</div>
+        </div>
+
+        <!-- Coordenadas manuais -->
+        <div id="coords-panel" style="display:none; margin-top:10px;">
+          <div style="font-size:11px; color:#aaa; margin-bottom:8px;">Digite cada ponto (latitude, longitude) e clique em + Adicionar.</div>
+          <div style="display:flex; gap:4px; margin-bottom:6px;">
+            <input type="number" id="coord-lat" placeholder="Latitude" step="0.000001" style="flex:1; padding:7px; background:#2a2a2a; border:1px solid #444; border-radius:6px; color:#fff; font-size:12px;">
+            <input type="number" id="coord-lng" placeholder="Longitude" step="0.000001" style="flex:1; padding:7px; background:#2a2a2a; border:1px solid #444; border-radius:6px; color:#fff; font-size:12px;">
+            <button class="btn btn-secondary btn-sm" onclick="adicionarCoordenada()" style="white-space:nowrap;">+ Add</button>
+          </div>
+          <div id="coords-lista" style="font-size:11px; color:#888; max-height:80px; overflow-y:auto;"></div>
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="fecharCoordsPanel()" style="flex:1">Fechar</button>
+            <button class="btn btn-primary btn-sm" onclick="finalizarCoordenadas()" style="flex:1">✅ Confirmar</button>
+          </div>
+        </div>
+
+        <div class="coords-display" id="coords-display" style="display:none;"></div>
+        <button class="btn btn-secondary btn-sm" id="btn-limpar-area" onclick="clearDrawing()" style="width:100%; margin-top:8px; display:none;">🗑️ Limpar Área</button>
+      </div>
+
+      <button class="btn btn-primary" onclick="openSaveModal()" style="width:100%; margin-top:10px">💾 Registrar Incêndio</button>
     </div>
 
     <div class="sidebar-section">
