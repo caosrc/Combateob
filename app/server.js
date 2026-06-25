@@ -14,6 +14,12 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 const SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "incendio_secret_key_v3";
