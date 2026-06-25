@@ -143,6 +143,40 @@ function initMainMap() {
   loadFiresOnMap();
 }
 
+let gpsMapMarker = null;
+
+function centralizarGPSMapa() {
+  if (!mainMap) return;
+  if (!navigator.geolocation) { alert("Geolocalização não suportada neste dispositivo."); return; }
+  const btn = document.getElementById("map-gps-btn");
+  const icon = document.getElementById("map-gps-icon");
+  btn.disabled = true;
+  btn.classList.add("active");
+  icon.textContent = "⏳";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      mainMap.setView([lat, lng], 16);
+      if (gpsMapMarker) mainMap.removeLayer(gpsMapMarker);
+      gpsMapMarker = L.circleMarker([lat, lng], {
+        radius: 10, color: "#2980b9", fillColor: "#3498db",
+        fillOpacity: 0.85, weight: 3
+      }).addTo(mainMap);
+      gpsMapMarker.bindPopup(`📍 Sua localização<br><small>Precisão: ±${accuracy.toFixed(0)}m</small>`).openPopup();
+      btn.disabled = false;
+      btn.classList.remove("active");
+      icon.textContent = "📍";
+    },
+    err => {
+      alert("Não foi possível obter sua localização.\n" + err.message);
+      btn.disabled = false;
+      btn.classList.remove("active");
+      icon.textContent = "📍";
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+}
+
 async function loadFiresOnMap() {
   if (!mainMap || !fireLayerGroup) return;
   fireLayerGroup.clearLayers();
