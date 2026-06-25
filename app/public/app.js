@@ -610,10 +610,40 @@ updateOnlineStatus();
 // Permite exports via query string
 const origFetch = window.fetch;
 
-// ==================== SERVICE WORKER ====================
+// ==================== SERVICE WORKER + PWA INSTALL ====================
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(console.error);
 }
+
+let _deferredInstallPrompt = null;
+
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Mostra banner de instalação
+  const banner = document.getElementById("pwa-install-banner");
+  if (banner) banner.style.display = "flex";
+});
+
+function instalarPWA() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  _deferredInstallPrompt.userChoice.then(() => {
+    _deferredInstallPrompt = null;
+    const banner = document.getElementById("pwa-install-banner");
+    if (banner) banner.style.display = "none";
+  });
+}
+
+function fecharBannerPWA() {
+  const banner = document.getElementById("pwa-install-banner");
+  if (banner) banner.style.display = "none";
+}
+
+window.addEventListener("appinstalled", () => {
+  const banner = document.getElementById("pwa-install-banner");
+  if (banner) banner.style.display = "none";
+});
 
 // ==================== INIT ====================
 // Datas padrão

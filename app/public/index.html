@@ -5,17 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Brigada Ouro</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Brigada Ouro">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
 <div class="offline-banner" id="offline-banner">⚠️ Modo Offline – dados serão sincronizados quando houver conexão</div>
 
+<!-- BANNER INSTALAR PWA -->
+<div class="pwa-banner" id="pwa-install-banner" style="display:none;">
+  <img src="icon-192.png" class="pwa-banner-icon" alt="">
+  <div class="pwa-banner-text">
+    <strong>Instalar Brigada Ouro</strong>
+    <span>Adicione ao celular para acesso rápido</span>
+  </div>
+  <button class="pwa-btn-install" onclick="instalarPWA()">Instalar</button>
+  <button class="pwa-btn-close" onclick="fecharBannerPWA()">✕</button>
+</div>
+
 <!-- HEADER -->
 <header class="app-header">
-  <div class="header-brand">🔥 Brigada Ouro</div>
+  <div class="header-brand">
+    <img src="icon-192.png" alt="" class="header-logo">
+    Brigada Ouro
+  </div>
   <div class="header-right">
     <span class="user-badge" id="user-badge">–</span>
     <button class="btn-icon" onclick="logout()" title="Sair">⏻</button>

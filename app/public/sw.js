@@ -1,13 +1,16 @@
-const CACHE_NAME = "incendio-v3-cache";
+const CACHE_NAME = "brigada-ouro-v1";
 const URLS = [
   "/",
   "/index.html",
   "/login.html",
-  "/dashboard.html",
   "/app.js",
   "/db.js",
   "/style.css",
   "/manifest.json",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png",
+  "/favicon-32.png",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
   "https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css",
