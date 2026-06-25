@@ -210,8 +210,15 @@ app.get("/report/:id", (req, res) => {
       curY += 6;
     };
 
+    // ── SEÇÃO 0: EQUIPE ──
+    section("1. Identificação da Equipe", [
+      { label: "Brigadista Responsável", value: val(d.brigadista) },
+      { label: "Nome da Equipe", value: val(d.nomeEquipe) },
+      { label: "Brigadistas da Equipe", value: val(d.brigadistas), wide: true },
+    ]);
+
     // ── SEÇÃO 1: DADOS DO LOCAL ──
-    section("1. Identificação do Local da Ocorrência", [
+    section("2. Identificação do Local da Ocorrência", [
       { label: "Município", value: val(d.municipio) },
       { label: "Coordenadas GPS", value: val(d.coordStr) },
       { label: "Local de Referência", value: val(d.localReferencia), wide: true },
@@ -220,21 +227,21 @@ app.get("/report/:id", (req, res) => {
     ]);
 
     // ── SEÇÃO 2: DETECÇÃO ──
-    section("2. Dados da Detecção do Incêndio", [
+    section("3. Dados da Detecção do Incêndio", [
       { label: "Data de Detecção", value: fmtDate(d.dataDeteccao) },
       { label: "Hora de Detecção", value: val(d.horaDeteccao) },
       { label: "Forma de Detecção", value: val(d.formaDeteccao), wide: true },
     ]);
 
     // ── SEÇÃO 3: CONTATO ──
-    section("3. Dados do Comunicante / Contato", [
+    section("4. Dados do Comunicante / Contato", [
       { label: "Nome do Contato", value: val(d.nomeContato) },
       { label: "Orgão / Função", value: val(d.orgaoContato) },
       { label: "Telefone", value: val(d.telefoneContato), wide: true },
     ]);
 
     // ── SEÇÃO 4: COMBATE ──
-    section("4. Dados do Combate", [
+    section("5. Dados do Combate", [
       { label: "Início do Combate", value: fmtDateTime(d.inicioData, d.inicioHora) },
       { label: "Incêndio Debelado em", value: fmtDateTime(d.debeladoData, d.debeladoHora) },
       { label: "Pessoal Mobilizado", value: val(d.pessoal) },
@@ -245,7 +252,7 @@ app.get("/report/:id", (req, res) => {
     ]);
 
     // ── SEÇÃO 5: ÁREA ──
-    section("5. Área Atingida e Localização Espacial", [
+    section("6. Área Atingida e Localização Espacial", [
       { label: "Área Total Atingida (calculada)", value: row.area ? `${row.area.toFixed(4)} hectares` : "–" },
       { label: "Polígono Registrado", value: (() => { try { const p = JSON.parse(row.polygon || "[]"); return p.length >= 3 ? `Sim – ${p.length} vértices` : "Não registrado"; } catch { return "–"; } })() },
     ]);
@@ -286,6 +293,7 @@ app.get("/export/excel", auth, (req, res) => {
     // ── PLANILHA 1: DADOS COMPLETOS ──
     const headers = [
       "Nº Registro", "Data/Hora Registro", "Equipe",
+      "Brigadista Responsável", "Nome da Equipe", "Brigadistas da Equipe",
       "Município", "Coordenadas GPS", "Latitude", "Longitude",
       "Local de Referência", "Localização (Entorno/Interno)", "UC (S/N)",
       "Data Detecção", "Hora Detecção", "Forma de Detecção",
@@ -303,6 +311,9 @@ app.get("/export/excel", auth, (req, res) => {
         `#${String(r.id).padStart(4, "0")}`,
         new Date(r.createdAt).toLocaleString("pt-BR"),
         r.team || "",
+        d.brigadista || "",
+        d.nomeEquipe || "",
+        d.brigadistas || "",
         d.municipio || "",
         d.coordStr || "",
         d.lat ? parseFloat(d.lat) : "",
@@ -342,7 +353,9 @@ app.get("/export/excel", auth, (req, res) => {
 
     // Larguras das colunas
     const colWidths = [
-      12, 22, 20, 20, 30, 12, 12,
+      12, 22, 20,
+      28, 25, 50,
+      20, 30, 12, 12,
       30, 22, 8,
       14, 12, 30,
       25, 22, 16,

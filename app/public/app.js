@@ -2,8 +2,17 @@
 const token = localStorage.getItem("token");
 if (!token) window.location.href = "/login.html";
 
-document.getElementById("user-badge").textContent =
-  (localStorage.getItem("username") || "–") + " · " + (localStorage.getItem("team") || "–");
+function atualizarBadgeEquipe() {
+  const nomeEquipe = document.getElementById("nomeEquipe");
+  const badge = document.getElementById("user-badge");
+  if (nomeEquipe && nomeEquipe.value.trim()) {
+    badge.textContent = "Equipe " + nomeEquipe.value.trim();
+  } else {
+    badge.textContent = "Equipe " + (localStorage.getItem("team") || "–");
+  }
+}
+
+atualizarBadgeEquipe();
 
 function logout() {
   localStorage.clear();
@@ -431,6 +440,9 @@ async function salvarIncendio() {
       : "");
 
   const data = {
+    brigadista: document.getElementById("brigadista").value.trim(),
+    nomeEquipe: document.getElementById("nomeEquipe").value.trim(),
+    brigadistas: document.getElementById("brigadistas").value.trim(),
     municipio: document.getElementById("municipio").value.trim(),
     lat: coordCapturada.lat,
     lng: coordCapturada.lng,
@@ -485,7 +497,8 @@ async function salvarIncendio() {
 }
 
 function limparFormulario() {
-  ["municipio","localReferencia","nomeContato","orgaoContato","telefoneContato",
+  ["brigadista","nomeEquipe","brigadistas","municipio","localReferencia",
+   "nomeContato","orgaoContato","telefoneContato",
    "inicioData","inicioHora","descricao","pessoal","veiculos","debeladoData","debeladoHora",
    "dataDeteccao","horaDeteccao","formaOutro","causa"].forEach(id => {
     const el = document.getElementById(id);

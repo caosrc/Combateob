@@ -35,6 +35,25 @@
 
   <div class="form-scroll">
     <div class="form-section">
+      <div class="section-title">👷 Identificação da Equipe</div>
+
+      <div class="form-group">
+        <label>Brigadista (Responsável pelo Registro)</label>
+        <input type="text" id="brigadista" placeholder="Nome do brigadista responsável">
+      </div>
+
+      <div class="form-group">
+        <label>Nome da Equipe</label>
+        <input type="text" id="nomeEquipe" placeholder="Nome da equipe" oninput="atualizarBadgeEquipe()">
+      </div>
+
+      <div class="form-group">
+        <label>Brigadistas da Equipe</label>
+        <textarea id="brigadistas" rows="3" placeholder="Nomes dos brigadistas da equipe..."></textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
       <div class="section-title">📍 Localização</div>
 
       <div class="form-group">
