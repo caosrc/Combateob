@@ -37,7 +37,16 @@ function switchTab(tab) {
   }
   if (tab === "dashboard") {
     loadDashboard();
+    document.getElementById("sobre-section").style.display = "block";
   }
+}
+
+function toggleSobre() {
+  const body = document.getElementById("sobre-body");
+  const chevron = document.getElementById("sobre-chevron");
+  const open = body.style.display !== "none";
+  body.style.display = open ? "none" : "block";
+  chevron.textContent = open ? "▼" : "▲";
 }
 
 // ==================== TOGGLES ====================

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Brigada Incêndio</title>
+  <title>Brigada Ouro</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
@@ -15,7 +15,7 @@
 
 <!-- HEADER -->
 <header class="app-header">
-  <div class="header-brand">🔥 Brigada Incêndio</div>
+  <div class="header-brand">🔥 Brigada Ouro</div>
   <div class="header-right">
     <span class="user-badge" id="user-badge">–</span>
     <button class="btn-icon" onclick="logout()" title="Sair">⏻</button>
@@ -309,6 +309,22 @@
           <tr><td colspan="6" style="text-align:center; color:#666; padding:24px;">Carregando...</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="sobre-card" id="sobre-section" style="display:none;">
+      <div class="sobre-header" onclick="toggleSobre()">
+        <span>ℹ️ Sobre o Sistema</span>
+        <span class="sobre-chevron" id="sobre-chevron">▼</span>
+      </div>
+      <div class="sobre-body" id="sobre-body">
+        <div class="sobre-logo">🔥</div>
+        <div class="sobre-title">Brigada Ouro</div>
+        <div class="sobre-sub">Sistema de Combate a Incêndios Florestais</div>
+        <div class="sobre-divider"></div>
+        <div class="sobre-row"><span class="sobre-icon">👤</span><span>Desenvolvido por <strong>Sócrates Resende</strong></span></div>
+        <div class="sobre-row"><span class="sobre-icon">✉️</span><a href="mailto:socrates.resende@gmail.com" class="sobre-link">socrates.resende@gmail.com</a></div>
+        <div class="sobre-row"><span class="sobre-icon">📞</span><a href="tel:+5531999943956" class="sobre-link">(31) 99994-3956</a></div>
+      </div>
     </div>
   </div>
 </div>

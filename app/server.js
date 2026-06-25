@@ -265,7 +265,7 @@ app.get("/report/:id", (req, res) => {
 
     doc.fontSize(7.5).fillColor(LIGHT).font("Helvetica")
       .text(
-        `Documento gerado automaticamente pelo Sistema Brigada Incêndio  ·  Registro #${String(row.id).padStart(4,"0")}  ·  ${new Date().toLocaleString("pt-BR")}`,
+        `Documento gerado automaticamente pelo Sistema Brigada Ouro  ·  Registro #${String(row.id).padStart(4,"0")}  ·  ${new Date().toLocaleString("pt-BR")}`,
         ML, footerY + 4, { width: PW, align: "center" }
       );
 
@@ -342,7 +342,7 @@ app.get("/export/excel", auth, (req, res) => {
 
     // Monta sheet com linha de título + cabeçalho + dados
     const sheetData = [
-      [`RELATÓRIO DE INCÊNDIOS FLORESTAIS – Brigada Incêndio`],
+      [`RELATÓRIO DE INCÊNDIOS FLORESTAIS – Brigada Ouro`],
       [`Gerado em: ${gerado}   |   Total de registros: ${rows.length}`],
       [],
       headers,
@@ -433,7 +433,7 @@ app.get("/export/kmz", auth, (req, res) => {
     let kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
-  <name>Brigada Incêndio – Registros</name>
+  <name>Brigada Ouro – Registros</name>
   <Style id="poly"><LineStyle><color>ff0000ff</color><width>3</width></LineStyle><PolyStyle><color>440000ff</color></PolyStyle></Style>
   <Style id="pt"><IconStyle><color>ff0000ff</color><scale>1.2</scale><Icon><href>http://maps.google.com/mapfiles/ms/icons/red-dot.png</href></Icon></IconStyle></Style>`;
 
@@ -483,4 +483,4 @@ app.post("/sync", auth, (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => console.log(`Brigada Incêndio na porta ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`Brigada Ouro na porta ${PORT}`));

@@ -642,6 +642,52 @@ html, body {
 
 .fires-table tr:hover td { background: #fafafa; }
 
+/* ===================== SOBRE ===================== */
+.sobre-card {
+  margin: 16px 0 8px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #ffe0a0;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.sobre-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #ff6b00, #e63946);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  user-select: none;
+}
+.sobre-chevron { font-size: 13px; opacity: 0.85; }
+.sobre-body {
+  padding: 20px 18px 16px;
+  display: block;
+}
+.sobre-logo { font-size: 36px; text-align: center; margin-bottom: 6px; }
+.sobre-title { font-size: 20px; font-weight: 700; text-align: center; color: #e63946; }
+.sobre-sub { font-size: 12px; text-align: center; color: #888; margin-bottom: 16px; }
+.sobre-divider { height: 1px; background: #f0e8d8; margin-bottom: 14px; }
+.sobre-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+}
+.sobre-icon { font-size: 18px; flex-shrink: 0; }
+.sobre-link {
+  color: #e63946;
+  text-decoration: none;
+  font-weight: 500;
+}
+.sobre-link:hover { text-decoration: underline; }
+
 /* ===================== MODAL ===================== */
 .modal-overlay {
   position: fixed;
