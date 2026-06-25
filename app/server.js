@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const SECRET = "incendio_secret_key_v3";
+const SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "incendio_secret_key_v3";
 const db = new sqlite3.Database(path.join(__dirname, "db.sqlite"));
 
 const storage = multer.diskStorage({

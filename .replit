@@ -37,3 +37,8 @@ externalPort = 80
 [deployment]
 deploymentTarget = "vm"
 run = ["bash", "-c", "cd app && node server.js"]
+
+[userenv]
+
+[userenv.shared]
+NODE_ENV = "production"
