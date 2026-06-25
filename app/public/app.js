@@ -243,9 +243,9 @@ function renderizarListaCoords() {
     return;
   }
   el.innerHTML = coordsManual.map((c, i) =>
-    `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #333;">
+    `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #eee;">
       <span>📍 ${i+1}: ${c[0].toFixed(5)}, ${c[1].toFixed(5)}</span>
-      <span style="cursor:pointer;color:#ff4444;" onclick="removerCoord(${i})">✕</span>
+      <span style="cursor:pointer;color:#c0392b;" onclick="removerCoord(${i})">✕</span>
     </div>`
   ).join("");
 }

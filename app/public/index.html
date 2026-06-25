@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 
@@ -88,23 +88,23 @@
             <span class="dot dot-yellow blink" id="gps-dot"></span>
             <span id="gps-status-text">Aguardando GPS...</span>
           </div>
-          <div style="font-size:11px; color:#888; margin:6px 0;">Ande pelas bordas da área queimada. O GPS registrará automaticamente os pontos.</div>
+          <div style="font-size:11px; color:#777; margin:6px 0;">Ande pelas bordas da área queimada. O GPS registrará automaticamente os pontos.</div>
           <div style="display:flex; gap:6px;">
             <button class="btn btn-danger btn-sm" onclick="pararGPS()" style="flex:1">⏹️ Parar</button>
             <button class="btn btn-secondary btn-sm" onclick="adicionarPontoGPSManual()" style="flex:1">📍 + Ponto</button>
           </div>
-          <div style="font-size:11px; color:#aaa; margin-top:6px;" id="gps-points-count">0 pontos registrados</div>
+          <div style="font-size:11px; color:#666; margin-top:6px;" id="gps-points-count">0 pontos registrados</div>
         </div>
 
         <!-- Coordenadas manuais -->
         <div id="coords-panel" style="display:none; margin-top:10px;">
-          <div style="font-size:11px; color:#aaa; margin-bottom:8px;">Digite cada ponto (latitude, longitude) e clique em + Adicionar.</div>
+          <div style="font-size:11px; color:#666; margin-bottom:8px;">Digite cada ponto (latitude, longitude) e clique em + Adicionar.</div>
           <div style="display:flex; gap:4px; margin-bottom:6px;">
-            <input type="number" id="coord-lat" placeholder="Latitude" step="0.000001" style="flex:1; padding:7px; background:#2a2a2a; border:1px solid #444; border-radius:6px; color:#fff; font-size:12px;">
-            <input type="number" id="coord-lng" placeholder="Longitude" step="0.000001" style="flex:1; padding:7px; background:#2a2a2a; border:1px solid #444; border-radius:6px; color:#fff; font-size:12px;">
+            <input type="number" id="coord-lat" placeholder="Latitude" step="0.000001" class="coord-input" style="flex:1;">
+            <input type="number" id="coord-lng" placeholder="Longitude" step="0.000001" class="coord-input" style="flex:1;">
             <button class="btn btn-secondary btn-sm" onclick="adicionarCoordenada()" style="white-space:nowrap;">+ Add</button>
           </div>
-          <div id="coords-lista" style="font-size:11px; color:#888; max-height:80px; overflow-y:auto;"></div>
+          <div id="coords-lista" style="font-size:11px; color:#555; max-height:80px; overflow-y:auto;"></div>
           <div style="display:flex; gap:6px; margin-top:8px;">
             <button class="btn btn-secondary btn-sm" onclick="fecharCoordsPanel()" style="flex:1">Fechar</button>
             <button class="btn btn-primary btn-sm" onclick="finalizarCoordenadas()" style="flex:1">✅ Confirmar</button>
@@ -128,7 +128,7 @@
     <div class="sidebar-section">
       <h3>🔄 Sincronização</h3>
       <button class="btn btn-secondary btn-sm" onclick="syncData()" style="width:100%">⬆️ Sincronizar Agora</button>
-      <p style="font-size:11px; color:#666; margin-top:6px;" id="sync-status">–</p>
+      <p style="font-size:11px; color:#888; margin-top:6px;" id="sync-status">–</p>
     </div>
 
   </div>
@@ -142,8 +142,8 @@
     <h2>✍️ Confirmar e Assinar</h2>
 
     <div style="margin-bottom:16px;">
-      <p style="font-size:13px; color:#aaa; margin-bottom:4px;">Área calculada:</p>
-      <p style="font-size:28px; font-weight:700; color:#ff4444;" id="modal-area">– ha</p>
+      <p style="font-size:13px; color:#666; margin-bottom:4px;">Área calculada:</p>
+      <p style="font-size:28px; font-weight:700; color:#c0392b;" id="modal-area">– ha</p>
     </div>
 
     <div class="form-group">

@@ -1,17 +1,21 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --red: #b30000;
-  --dark: #1a1a1a;
-  --mid: #333;
-  --light: #f5f5f5;
-  --accent: #ff4444;
+  --red: #c0392b;
+  --red-light: #e74c3c;
+  --dark-text: #1a1a1a;
+  --mid-text: #555;
+  --light-text: #888;
+  --bg: #f4f5f7;
+  --white: #ffffff;
+  --border: #e0e0e0;
+  --accent: #e74c3c;
 }
 
 body {
   font-family: 'Segoe UI', sans-serif;
-  background: var(--dark);
-  color: #fff;
+  background: var(--bg);
+  color: var(--dark-text);
   min-height: 100vh;
 }
 
@@ -21,22 +25,22 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a0000, #2d0000, #1a1a1a);
+  background: linear-gradient(135deg, #fff5f5, #ffe0e0, #f4f5f7);
 }
 
 .auth-box {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(179,0,0,0.4);
+  background: var(--white);
+  border: 1px solid #f0d0d0;
   border-radius: 16px;
   padding: 40px;
-  width: 360px;
+  width: 380px;
   text-align: center;
-  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(192,57,43,0.1);
 }
 
 .auth-box .logo { font-size: 48px; margin-bottom: 8px; }
-.auth-box h1 { font-size: 22px; color: var(--accent); margin-bottom: 4px; }
-.auth-box p { color: #aaa; font-size: 13px; margin-bottom: 28px; }
+.auth-box h1 { font-size: 22px; color: var(--red); margin-bottom: 4px; }
+.auth-box p { color: var(--light-text); font-size: 13px; margin-bottom: 28px; }
 
 /* ===================== FORM ===================== */
 .form-group { margin-bottom: 14px; text-align: left; }
@@ -44,10 +48,11 @@ body {
 .form-group label {
   display: block;
   font-size: 11px;
-  color: #aaa;
+  color: var(--light-text);
   margin-bottom: 5px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .form-group input,
@@ -55,13 +60,13 @@ body {
 .form-group textarea {
   width: 100%;
   padding: 10px 14px;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: var(--white);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: #fff;
+  color: var(--dark-text);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
   font-family: inherit;
 }
 
@@ -69,13 +74,12 @@ body {
 .form-group select:focus,
 .form-group textarea:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(231,76,60,0.1);
 }
 
-/* FIX: opções do select visíveis */
-.form-group select option,
-select option {
-  background: #2a2a2a;
-  color: #fff;
+.form-group select option {
+  background: #fff;
+  color: #1a1a1a;
 }
 
 .form-group textarea { resize: vertical; min-height: 56px; }
@@ -95,17 +99,24 @@ select option {
 }
 
 .btn-primary { background: var(--red); color: #fff; width: 100%; }
-.btn-primary:hover { background: var(--accent); transform: translateY(-1px); }
-.btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
-.btn-secondary:hover { background: rgba(255,255,255,0.18); }
+.btn-primary:hover { background: var(--red-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(192,57,43,0.3); }
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--mid-text);
+  border: 1.5px solid var(--border);
+}
+.btn-secondary:hover { background: #f8f8f8; border-color: #ccc; }
+
 .btn-sm { padding: 7px 14px; font-size: 12px; }
-.btn-danger { background: #8b0000; color: #fff; border: none; }
-.btn-danger:hover { background: #aa0000; }
+
+.btn-danger { background: #c0392b; color: #fff; border: none; }
+.btn-danger:hover { background: #e74c3c; }
 
 .error-msg {
-  background: rgba(179,0,0,0.2);
-  border: 1px solid var(--red);
-  color: #ff8888;
+  background: #fff5f5;
+  border: 1px solid #f5c6c6;
+  color: #c0392b;
   padding: 10px;
   border-radius: 8px;
   margin-bottom: 16px;
@@ -115,38 +126,49 @@ select option {
 
 /* ===================== NAVBAR ===================== */
 .navbar {
-  background: rgba(0,0,0,0.85);
-  border-bottom: 1px solid rgba(179,0,0,0.3);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
   padding: 11px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  backdrop-filter: blur(10px);
   position: sticky;
   top: 0;
   z-index: 1000;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
-.navbar-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--accent); }
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--red);
+}
+
 .navbar-nav { display: flex; gap: 8px; align-items: center; }
 
 .nav-link {
-  color: #ccc;
+  color: var(--mid-text);
   text-decoration: none;
   padding: 6px 13px;
   border-radius: 6px;
   font-size: 13px;
+  font-weight: 500;
   transition: all 0.2s;
 }
-.nav-link:hover, .nav-link.active { color: #fff; background: rgba(179,0,0,0.3); }
+.nav-link:hover { color: var(--dark-text); background: #f0f0f0; }
+.nav-link.active { color: var(--red); background: #fff0f0; }
 
 .user-badge {
-  background: rgba(179,0,0,0.2);
-  border: 1px solid rgba(179,0,0,0.4);
-  color: #ff8888;
+  background: #fff0f0;
+  border: 1px solid #f5c6c6;
+  color: var(--red);
   padding: 4px 11px;
   border-radius: 20px;
   font-size: 12px;
+  font-weight: 500;
 }
 
 /* ===================== LAYOUT ===================== */
@@ -154,31 +176,32 @@ select option {
 
 .sidebar {
   width: 310px;
-  background: rgba(0,0,0,0.65);
-  border-right: 1px solid rgba(255,255,255,0.07);
+  background: var(--white);
+  border-right: 1px solid var(--border);
   overflow-y: auto;
   flex-shrink: 0;
 }
 
 .sidebar-section {
-  padding: 14px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 14px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .sidebar-section h3 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #777;
+  color: var(--light-text);
   margin-bottom: 10px;
+  font-weight: 700;
 }
 
 #map { flex: 1; height: 100%; }
 
 /* ===================== ÁREA QUEIMADA CARD ===================== */
 .area-card {
-  background: rgba(179,0,0,0.07);
-  border: 1px solid rgba(179,0,0,0.25);
+  background: #fff5f5;
+  border: 1.5px solid #f5c6c6;
   border-radius: 10px;
   padding: 12px;
   margin-top: 4px;
@@ -191,21 +214,21 @@ select option {
   margin-bottom: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #eee;
+  color: var(--dark-text);
 }
 
 .area-badge {
   font-size: 11px;
   padding: 3px 9px;
   border-radius: 20px;
-  background: #3a2020;
-  color: #ff8888;
-  font-weight: 400;
+  background: #ffe0e0;
+  color: var(--red);
+  font-weight: 500;
 }
 
 .area-badge.ok {
-  background: #1a3a1a;
-  color: #66cc66;
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .area-card-body {
@@ -219,28 +242,29 @@ select option {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--white);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: #ddd;
+  color: var(--mid-text);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
   width: 100%;
   text-align: left;
   font-family: inherit;
+  font-weight: 500;
 }
 
 .btn-area-mode:hover {
-  background: rgba(255,68,68,0.15);
-  border-color: rgba(255,68,68,0.4);
-  color: #fff;
+  background: #fff0f0;
+  border-color: #f5c6c6;
+  color: var(--red);
 }
 
 .btn-area-mode.active {
-  background: rgba(255,68,68,0.2);
+  background: #fff0f0;
   border-color: var(--accent);
-  color: #fff;
+  color: var(--red);
 }
 
 .area-mode-icon { font-size: 18px; }
@@ -251,18 +275,18 @@ select option {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #ddd;
+  color: var(--mid-text);
   margin-bottom: 4px;
 }
 
 /* COORDS DISPLAY */
 .coords-display {
-  background: rgba(255,255,255,0.04);
-  border: 1px dashed rgba(179,0,0,0.3);
+  background: #f0fff0;
+  border: 1px solid #c8e6c9;
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 12px;
-  color: #aaa;
+  color: #2e7d32;
   margin-top: 8px;
 }
 
@@ -273,7 +297,7 @@ select option {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #aaa;
+  color: var(--mid-text);
 }
 
 .dot {
@@ -284,9 +308,9 @@ select option {
   flex-shrink: 0;
 }
 
-.dot-green { background: #00cc66; }
-.dot-red { background: var(--accent); }
-.dot-yellow { background: #ffcc00; }
+.dot-green { background: #27ae60; }
+.dot-red { background: #e74c3c; }
+.dot-yellow { background: #f39c12; }
 
 @keyframes blink {
   0%, 100% { opacity: 1; }
@@ -298,7 +322,7 @@ select option {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.4);
   z-index: 2000;
   display: none;
   align-items: center;
@@ -307,17 +331,18 @@ select option {
 .modal-overlay.active { display: flex; }
 
 .modal {
-  background: #222;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 26px;
+  padding: 28px;
   width: 500px;
   max-width: 95vw;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.15);
 }
 
-.modal h2 { font-size: 18px; color: var(--accent); margin-bottom: 18px; }
+.modal h2 { font-size: 18px; color: var(--red); margin-bottom: 18px; }
 
 /* ===================== DASHBOARD ===================== */
 .dashboard-container { padding: 28px; max-width: 1200px; margin: 0 auto; }
@@ -330,46 +355,50 @@ select option {
 }
 
 .stat-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.stat-card .value { font-size: 36px; font-weight: 700; color: var(--accent); }
-.stat-card .label { color: #888; font-size: 13px; margin-top: 4px; }
+.stat-card .value { font-size: 36px; font-weight: 700; color: var(--red); }
+.stat-card .label { color: var(--light-text); font-size: 13px; margin-top: 4px; }
 
 .fires-table {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .fires-table table { width: 100%; border-collapse: collapse; }
 
 .fires-table th {
-  background: rgba(179,0,0,0.2);
+  background: #fff0f0;
   padding: 12px 16px;
   text-align: left;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #ccc;
+  color: var(--red);
+  font-weight: 700;
 }
 
 .fires-table td {
   padding: 12px 16px;
   font-size: 13px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid #f5f5f5;
+  color: var(--dark-text);
 }
 
-.fires-table tr:hover td { background: rgba(255,255,255,0.03); }
+.fires-table tr:hover td { background: #fafafa; }
 
 /* ===================== SIGNATURE ===================== */
 #signature-canvas {
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   background: #fff;
   width: 100%;
@@ -378,27 +407,49 @@ select option {
 
 /* ===================== PHOTOS ===================== */
 .photo-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.photo-thumb { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
+.photo-thumb {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
 
 /* ===================== OFFLINE ===================== */
 .offline-banner {
-  background: #8b6000;
-  color: #ffe;
+  background: #fff3cd;
+  color: #856404;
   text-align: center;
   padding: 6px;
   font-size: 13px;
   display: none;
+  border-bottom: 1px solid #ffe082;
 }
 .offline-banner.show { display: block; }
 
-/* ===================== LEAFLET FIXES ===================== */
-.leaflet-control-zoom a { background: #222 !important; color: #fff !important; border-color: #444 !important; }
-.leaflet-draw-toolbar a { background: #222 !important; }
+/* ===================== LEAFLET ===================== */
+.leaflet-control-zoom a {
+  background: #fff !important;
+  color: #333 !important;
+  border-color: #ddd !important;
+}
+.leaflet-draw-toolbar a { background: #fff !important; }
+
+/* ===================== COORD INPUTS (inline) ===================== */
+.coord-input {
+  padding: 7px;
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  color: #333;
+  font-size: 12px;
+}
+.coord-input:focus { border-color: var(--accent); outline: none; }
 
 /* ===================== SCROLLBAR ===================== */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(179,0,0,0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
 
 /* ===================== MOBILE ===================== */
 @media (max-width: 768px) {
