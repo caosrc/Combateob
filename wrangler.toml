@@ -1,0 +1,11 @@
+name = "brigada-ouro"
+pages_build_output_dir = "app/public"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Crie o banco com: wrangler d1 create brigada-ouro
+# Depois copie o database_id abaixo
+[[d1_databases]]
+binding = "DB"
+database_name = "brigada-ouro"
+database_id = "SEU_DATABASE_ID_AQUI"

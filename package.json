@@ -1,24 +1,25 @@
 {
-  "name": "workspace",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "brigada-ouro",
+  "version": "3.0.0",
+  "description": "Sistema de Registro de Ocorrências de Incêndio Florestal",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:local": "cd app && node server.js",
+    "dev:cf": "wrangler pages dev app/public --d1=DB",
+    "deploy": "wrangler pages deploy app/public",
+    "db:init": "wrangler d1 execute brigada-ouro --remote --file=./schema.sql",
+    "db:create": "wrangler d1 create brigada-ouro"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@turf/turf": "^7.3.5",
-    "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0",
-    "pdfkit": "^0.19.1",
-    "sqlite3": "^6.0.1",
+    "fflate": "^0.8.2",
+    "jose": "^6.0.10",
+    "pdf-lib": "^1.17.1",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
   }
 }

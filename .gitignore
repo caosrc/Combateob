@@ -1,6 +1,10 @@
+node_modules/
 app/node_modules/
 app/db.sqlite
 app/uploads/*
 !app/uploads/.gitkeep
 app/exports/*
 !app/exports/.gitkeep
+.wrangler/
+.dev.vars
+dist/
