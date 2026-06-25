@@ -12,22 +12,33 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 
+const UPLOADS_DIR = path.join(__dirname, "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
-app.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-  next();
-});
-app.use(express.static(path.join(__dirname, "public")));
 
-const SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "incendio_secret_key_v3";
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith("sw.js") || filePath.endsWith("manifest.json")) {
+      res.setHeader("Cache-Control", "no-cache");
+    }
+  }
+}));
+
+app.use("/login", (req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
+app.use("/fire", (req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
+app.use("/dashboard", (req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
+app.use("/sync", (req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
+app.use("/report", (req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
+app.use("/export", (req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
+
+const SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "incendio_secret_key_v3";
 const db = new sqlite3.Database(path.join(__dirname, "db.sqlite"));
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, "uploads")),
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
 });
 const upload = multer({ storage });
