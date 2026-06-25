@@ -82,6 +82,18 @@ function toggleChip(btn, value) {
 // ==================== COORDENADAS DO LOCAL ====================
 let coordCapturada = { lat: null, lng: null, coordStr: null };
 
+function decimalParaGMS(decimal, isLat) {
+  const abs = Math.abs(decimal);
+  const graus = Math.floor(abs);
+  const minFrac = (abs - graus) * 60;
+  const min = Math.floor(minFrac);
+  const seg = ((minFrac - min) * 60).toFixed(1);
+  const dir = isLat
+    ? (decimal >= 0 ? "N" : "S")
+    : (decimal >= 0 ? "L" : "O");
+  return `${graus}°${String(min).padStart(2,"0")}'${String(seg).padStart(4,"0")}"${dir}`;
+}
+
 function capturarGPS() {
   if (!navigator.geolocation) { alert("Geolocalização não suportada."); return; }
   const btn = document.querySelector(".btn-gps-capture");
@@ -89,10 +101,13 @@ function capturarGPS() {
   btn.disabled = true;
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude: lat, longitude: lng } = pos.coords;
-    coordCapturada = { lat, lng, coordStr: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
+    const gmsLat = decimalParaGMS(lat, true);
+    const gmsLng = decimalParaGMS(lng, false);
+    const coordStr = `${gmsLat}  ${gmsLng}`;
+    coordCapturada = { lat, lng, coordStr };
     const el = document.getElementById("gps-coord-result");
     el.style.display = "block";
-    el.innerHTML = `✅ ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    el.innerHTML = `✅ ${gmsLat} &nbsp;|&nbsp; ${gmsLng}`;
     btn.innerHTML = "<span>📡</span> Ativar GPS";
     btn.disabled = false;
   }, err => {
@@ -401,6 +416,60 @@ function clearDrawing() {
   desativarModoAtual();
 }
 
+// ==================== FOTOS ====================
+let fotosCapturadas = [];
+
+async function comprimirFoto(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1400;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function adicionarFotos(input) {
+  const files = Array.from(input.files);
+  for (const file of files) {
+    if (fotosCapturadas.length >= 20) { alert("Máximo de 20 fotos."); break; }
+    const b64 = await comprimirFoto(file);
+    fotosCapturadas.push(b64);
+  }
+  input.value = "";
+  renderFotoPreview();
+}
+
+function removerFoto(idx) {
+  fotosCapturadas.splice(idx, 1);
+  renderFotoPreview();
+}
+
+function renderFotoPreview() {
+  const grid = document.getElementById("fotos-preview");
+  if (!grid) return;
+  grid.innerHTML = "";
+  fotosCapturadas.forEach((src, i) => {
+    const div = document.createElement("div");
+    div.className = "foto-thumb";
+    div.innerHTML = `<img src="${src}" alt="Foto ${i+1}"><button class="foto-remove" onclick="removerFoto(${i})">✕</button><span class="foto-num">${i+1}</span>`;
+    grid.appendChild(div);
+  });
+  const cnt = document.getElementById("fotos-count");
+  if (cnt) cnt.textContent = fotosCapturadas.length > 0 ? `${fotosCapturadas.length} foto(s) selecionada(s)` : "";
+}
+
 // ==================== SIGNATURE ====================
 let sigCanvas, sigCtx, sigDrawing = false;
 
@@ -476,7 +545,7 @@ async function salvarIncendio() {
     causa: document.getElementById("causa").value
   };
 
-  const fireData = { data, polygon: currentPolygon, signature: getSignatureData() };
+  const fireData = { data, polygon: currentPolygon, signature: getSignatureData(), photos: fotosCapturadas };
 
   if (navigator.onLine) {
     try {
@@ -485,27 +554,35 @@ async function salvarIncendio() {
         headers: { "Content-Type": "application/json", "Authorization": token },
         body: JSON.stringify(fireData)
       });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => res.status);
+        alert(`❌ Erro do servidor (${res.status}).\n${String(txt).substring(0,200)}`);
+        return;
+      }
       const r = await res.json();
-      if (r.error) { alert("Erro: " + r.error); return; }
+      if (r.error) { alert("❌ Erro: " + r.error); return; }
       closeModal();
       alert(`✅ Incêndio registrado!\nÁrea: ${r.area.toFixed(4)} ha\nID: #${r.id}`);
       limparFormulario();
       if (mapInitialized) loadFiresOnMap();
     } catch (e) {
+      // Erro de rede real — salvar offline
       await savePendingFire(fireData);
       closeModal();
-      alert("⚠️ Sem conexão. Salvo localmente.");
+      alert("⚠️ Falha na conexão. Registro salvo localmente e será sincronizado quando a conexão for restaurada.");
       updatePendingCount();
     }
   } else {
     await savePendingFire(fireData);
     closeModal();
-    alert("⚠️ Modo offline. Salvo localmente.");
+    alert("📴 Modo offline. Registro salvo localmente e será sincronizado quando a conexão for restaurada.");
     updatePendingCount();
   }
 }
 
 function limparFormulario() {
+  fotosCapturadas = [];
+  renderFotoPreview();
   ["brigadista","nomeEquipe","brigadistas","municipio","localReferencia",
    "nomeContato","orgaoContato","telefoneContato",
    "inicioData","inicioHora","descricao","pessoal","veiculos","debeladoData","debeladoHora",

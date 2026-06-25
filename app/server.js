@@ -13,7 +13,7 @@ const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "50mb" }));
 app.use((req, res, next) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
@@ -89,7 +89,7 @@ app.post("/login", (req, res) => {
 
 // ===== REGISTRAR INCÊNDIO =====
 app.post("/fire", auth, (req, res) => {
-  const { data, polygon, signature } = req.body;
+  const { data, polygon, signature, photos } = req.body;
   let area = 0;
   if (polygon && polygon.length >= 3) {
     try {
@@ -101,7 +101,7 @@ app.post("/fire", auth, (req, res) => {
 
   db.run(
     "INSERT INTO fires (data, area, team, polygon, signature, photos, createdAt) VALUES (?,?,?,?,?,?,?)",
-    [JSON.stringify(data || {}), area, req.user.team, JSON.stringify(polygon || []), signature || null, "[]", new Date().toISOString()],
+    [JSON.stringify(data || {}), area, req.user.team, JSON.stringify(polygon || []), signature || null, JSON.stringify(photos || []), new Date().toISOString()],
     function(err) {
       if (err) return res.json({ error: err.message });
       res.json({ ok: true, area, id: this.lastID });
@@ -277,6 +277,39 @@ app.get("/report/:id", (req, res) => {
     doc.fontSize(7).fillColor(LIGHT).font("Helvetica")
       .text("Fiscal / Supervisor", ML + 260, footerY + 31, { width: 200, align: "center" });
 
+    // ── PÁGINAS DE FOTOS ──
+    const photoList = (() => { try { return JSON.parse(row.photos || "[]"); } catch { return []; } })();
+    if (photoList.length > 0) {
+      const PER_PAGE = 4;
+      const imgW = 242, imgH = 340;
+      const gapX = 16, gapY = 16;
+      const col0X = ML, col1X = ML + imgW + gapX;
+      const positions = [
+        { x: col0X, y: 68 },
+        { x: col1X, y: 68 },
+        { x: col0X, y: 68 + imgH + gapY },
+        { x: col1X, y: 68 + imgH + gapY },
+      ];
+      for (let pi = 0; pi < photoList.length; pi += PER_PAGE) {
+        doc.addPage({ size: "A4", margin: 0 });
+        doc.rect(0, 0, 595, 58).fill(RED);
+        doc.fontSize(7).fillColor("#ffcccc").font("Helvetica")
+          .text("REGISTRO FOTOGRÁFICO", ML, 14, { width: PW, align: "center" });
+        doc.fontSize(14).fillColor("#ffffff").font("Helvetica-Bold")
+          .text(`Incêndio #${String(row.id).padStart(4,"0")} – Brigada Ouro`, ML, 28, { width: PW, align: "center" });
+        const pagePhotos = photoList.slice(pi, pi + PER_PAGE);
+        pagePhotos.forEach((photoB64, idx) => {
+          try {
+            const imgBuf = Buffer.from(photoB64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+            const pos = positions[idx];
+            doc.image(imgBuf, pos.x, pos.y, { width: imgW, height: imgH, fit: [imgW, imgH] });
+            doc.fontSize(8).fillColor(LIGHT).font("Helvetica")
+              .text(`Foto ${pi + idx + 1}`, pos.x, pos.y + imgH + 2, { width: imgW, align: "center" });
+          } catch (_) {}
+        });
+      }
+    }
+
     doc.end();
   });
 });
@@ -302,7 +335,7 @@ app.get("/export/excel", auth, (req, res) => {
       "Incêndio Debelado – Data", "Debelado – Hora",
       "Pessoal Mobilizado", "Veículos Mobilizados",
       "Houve Alimentação", "Causa do Incêndio",
-      "Descrição da Ocorrência", "Área Atingida (ha)"
+      "Descrição da Ocorrência", "Área Atingida (ha)", "Qtd. Fotos"
     ];
 
     const dataRows = rows.map(r => {
@@ -336,7 +369,8 @@ app.get("/export/excel", auth, (req, res) => {
         uc2text(d.alimentacao),
         d.causa || "",
         d.descricao || "",
-        r.area ? parseFloat(r.area.toFixed(4)) : ""
+        r.area ? parseFloat(r.area.toFixed(4)) : "",
+        (() => { try { return JSON.parse(r.photos || "[]").length; } catch { return 0; } })()
       ];
     });
 
@@ -363,7 +397,7 @@ app.get("/export/excel", auth, (req, res) => {
       18, 14,
       30, 30,
       16, 25,
-      50, 14
+      50, 14, 10
     ];
     ws["!cols"] = colWidths.map(w => ({ wch: w }));
 

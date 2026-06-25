@@ -216,6 +216,27 @@
     </div>
 
     <div class="form-section">
+      <div class="section-title">📷 Fotos da Ocorrência</div>
+
+      <div class="fotos-section">
+        <div class="fotos-actions">
+          <label class="btn-foto" for="foto-camera">
+            <span>📷</span> Câmera
+          </label>
+          <input type="file" id="foto-camera" accept="image/*" capture="environment" multiple style="display:none" onchange="adicionarFotos(this)">
+
+          <label class="btn-foto" for="foto-galeria">
+            <span>🖼️</span> Galeria
+          </label>
+          <input type="file" id="foto-galeria" accept="image/*" multiple style="display:none" onchange="adicionarFotos(this)">
+        </div>
+
+        <div id="fotos-count" class="fotos-count"></div>
+        <div id="fotos-preview" class="fotos-preview"></div>
+      </div>
+    </div>
+
+    <div class="form-section">
       <div class="section-title">🗺️ Área Queimada</div>
 
       <div class="area-card">
