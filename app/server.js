@@ -171,7 +171,7 @@ app.get("/report/:id", (req, res) => {
     doc.fontSize(13).fillColor(RED).font("Helvetica-Bold").text(`#${String(row.id).padStart(4,"0")}`, ML, idY + 10);
 
     doc.fontSize(8).fillColor(LIGHT).font("Helvetica").text("EQUIPE RESPONSÁVEL", ML + 90, idY);
-    doc.fontSize(11).fillColor(DARK).font("Helvetica-Bold").text(row.team || "–", ML + 90, idY + 10);
+    doc.fontSize(11).fillColor(DARK).font("Helvetica-Bold").text(d.nomeEquipe || row.team || "–", ML + 90, idY + 10);
 
     doc.fontSize(8).fillColor(LIGHT).font("Helvetica").text("DATA DO REGISTRO", ML + 240, idY);
     doc.fontSize(11).fillColor(DARK).font("Helvetica-Bold").text(new Date(row.createdAt).toLocaleString("pt-BR"), ML + 240, idY + 10);
