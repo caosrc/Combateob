@@ -644,12 +644,38 @@ async function loadDashboard() {
   } catch (e) { console.error(e); }
 }
 
-function exportarExcel() {
-  window.open("/export/excel?token=" + token, "_blank");
+async function exportarExcel() {
+  const btn = document.querySelector(".btn-export.excel");
+  if (btn) { btn.textContent = "⏳ Gerando..."; btn.disabled = true; }
+  try {
+    const res = await fetch("/export/excel", { headers: { "Authorization": token } });
+    if (!res.ok) throw new Error("Erro " + res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const hoje = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `incendios-brigada-${hoje}.xlsx`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch (e) { alert("Erro ao gerar Excel: " + e.message); }
+  finally { if (btn) { btn.textContent = "📊 Excel"; btn.disabled = false; } }
 }
 
-function exportarKMZ() {
-  window.open("/export/kmz?token=" + token, "_blank");
+async function exportarKMZ() {
+  const btn = document.querySelector(".btn-export.kmz");
+  if (btn) { btn.textContent = "⏳ Gerando..."; btn.disabled = true; }
+  try {
+    const res = await fetch("/export/kmz", { headers: { "Authorization": token } });
+    if (!res.ok) throw new Error("Erro " + res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const hoje = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `incendios-brigada-${hoje}.kmz`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch (e) { alert("Erro ao gerar KMZ: " + e.message); }
+  finally { if (btn) { btn.textContent = "🌍 KMZ"; btn.disabled = false; } }
 }
 
 // ==================== SYNC ====================

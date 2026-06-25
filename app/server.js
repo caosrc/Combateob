@@ -74,7 +74,11 @@ function parseData(raw) {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 function parsePoly(raw) {
-  try { return JSON.parse(raw || "[]"); } catch { return []; }
+  try {
+    let p = JSON.parse(raw || "[]");
+    if (p.length > 0 && Array.isArray(p[0]) && Array.isArray(p[0][0])) p = p[0];
+    return p;
+  } catch { return []; }
 }
 
 // ===== LOGIN =====
