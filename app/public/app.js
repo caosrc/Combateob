@@ -157,7 +157,10 @@ function abrirMapaDesenho() {
         ? [coordCapturada.lat, coordCapturada.lng]
         : [-15.78, -47.93];
       drawMap = L.map("draw-map").setView(center, coordCapturada.lat ? 15 : 5);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }).addTo(drawMap);
+      const osmDraw = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" });
+      const satDraw = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "© Esri" });
+      satDraw.addTo(drawMap);
+      L.control.layers({ "🛰️ Satélite": satDraw, "🗺️ OSM": osmDraw }).addTo(drawMap);
       drawMapItems = new L.FeatureGroup();
       drawMap.addLayer(drawMapItems);
       drawControl = new L.Control.Draw({
