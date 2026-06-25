@@ -2,42 +2,40 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Brigada Incêndio – Mapa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Brigada Incêndio</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
 <div class="offline-banner" id="offline-banner">⚠️ Modo Offline – dados serão sincronizados quando houver conexão</div>
 
-<nav class="navbar">
-  <div class="navbar-brand">🔥 Brigada Incêndio</div>
-  <div class="navbar-nav">
-    <a href="/" class="nav-link active">🗺️ Mapa</a>
-    <a href="/dashboard.html" class="nav-link">📊 Dashboard</a>
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-brand">🔥 Brigada Incêndio</div>
+  <div class="header-right">
     <span class="user-badge" id="user-badge">–</span>
-    <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+    <button class="btn-icon" onclick="logout()" title="Sair">⏻</button>
   </div>
-</nav>
+</header>
 
-<div class="main-layout">
-  <div class="sidebar">
+<!-- CONTEÚDO DAS ABAS -->
+<div class="tab-content" id="tab-registrar">
 
-    <div class="sidebar-section">
-      <h3>🔴 Status</h3>
-      <div class="status-bar">
-        <span class="dot dot-green" id="online-dot"></span>
-        <span id="online-text">Online</span>
-        &nbsp;|&nbsp;
-        <span id="pending-count">0 pendentes</span>
-      </div>
-    </div>
+  <!-- STATUS ONLINE/OFFLINE -->
+  <div class="status-strip">
+    <span class="dot dot-green" id="online-dot"></span>
+    <span id="online-text">Online</span>
+    <span style="margin-left:auto; font-size:11px; color:#888;" id="pending-count"></span>
+    <button class="sync-btn" onclick="syncData()" id="sync-btn">⬆️ Sincronizar</button>
+  </div>
 
-    <div class="sidebar-section">
-      <h3>🔥 Registrar Incêndio</h3>
+  <div class="form-scroll">
+    <div class="form-section">
+      <div class="section-title">📍 Localização</div>
 
       <div class="form-group">
         <label>Município</label>
@@ -45,30 +43,194 @@
       </div>
 
       <div class="form-group">
-        <label>Causa provável</label>
-        <select id="causa">
-          <option value="">Selecione...</option>
-          <option value="raio">⚡ Raio</option>
-          <option value="queima_controlada">🔥 Queima Controlada</option>
-          <option value="acidente">⚠️ Acidente</option>
-          <option value="criminoso">🚨 Criminoso (Incêndio Doloso)</option>
-          <option value="desconhecida">❓ Desconhecida</option>
-        </select>
+        <label>Coordenadas do Local</label>
+        <div class="coord-mode-tabs">
+          <button class="coord-tab active" id="tab-gps-coord" onclick="setCoordMode('gps')">📡 GPS</button>
+          <button class="coord-tab" id="tab-dms-coord" onclick="setCoordMode('dms')">🔢 Graus/Min/Seg</button>
+          <button class="coord-tab" id="tab-dec-coord" onclick="setCoordMode('dec')">📌 Decimal</button>
+        </div>
+
+        <!-- GPS -->
+        <div id="coord-gps-panel">
+          <button class="btn-gps-capture" onclick="capturarGPS()">
+            <span>📡</span> Capturar GPS Atual
+          </button>
+          <div id="gps-coord-result" class="coord-result" style="display:none;"></div>
+        </div>
+
+        <!-- DMS -->
+        <div id="coord-dms-panel" style="display:none;">
+          <div class="dms-row">
+            <span class="dms-label">Lat:</span>
+            <input type="number" class="dms-input" id="lat-g" placeholder="°" min="-90" max="90">
+            <span class="dms-sep">°</span>
+            <input type="number" class="dms-input" id="lat-m" placeholder="'" min="0" max="59">
+            <span class="dms-sep">'</span>
+            <input type="number" class="dms-input" id="lat-s" placeholder='"' min="0" max="59.99" step="0.01">
+            <span class="dms-sep">"</span>
+            <select class="dms-hemi" id="lat-h"><option value="S">S</option><option value="N">N</option></select>
+          </div>
+          <div class="dms-row">
+            <span class="dms-label">Lng:</span>
+            <input type="number" class="dms-input" id="lng-g" placeholder="°" min="-180" max="180">
+            <span class="dms-sep">°</span>
+            <input type="number" class="dms-input" id="lng-m" placeholder="'" min="0" max="59">
+            <span class="dms-sep">'</span>
+            <input type="number" class="dms-input" id="lng-s" placeholder='"' min="0" max="59.99" step="0.01">
+            <span class="dms-sep">"</span>
+            <select class="dms-hemi" id="lng-h"><option value="W">W</option><option value="E">E</option></select>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:8px;" onclick="confirmarDMS()">✅ Confirmar Coordenadas</button>
+          <div id="dms-coord-result" class="coord-result" style="display:none;"></div>
+        </div>
+
+        <!-- Decimal -->
+        <div id="coord-dec-panel" style="display:none;">
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="dec-lat" placeholder="Latitude (-90 a 90)" step="0.000001" class="form-input">
+            <input type="number" id="dec-lng" placeholder="Longitude (-180 a 180)" step="0.000001" class="form-input">
+          </div>
+          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:8px;" onclick="confirmarDecimal()">✅ Confirmar Coordenadas</button>
+          <div id="dec-coord-result" class="coord-result" style="display:none;"></div>
+        </div>
       </div>
 
       <div class="form-group">
-        <label>Descrição</label>
-        <textarea id="descricao" rows="2" placeholder="Descreva a ocorrência..."></textarea>
+        <label>Local de Referência</label>
+        <input type="text" id="localReferencia" placeholder="Descreva o ponto de referência">
       </div>
 
-      <!-- ÁREA QUEIMADA -->
-      <div class="area-card" id="area-card">
+      <div class="form-group">
+        <label>Local</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" id="local-entorno" onclick="setToggle('local','entorno')">Entorno</button>
+          <button class="toggle-btn" id="local-interno" onclick="setToggle('local','interno')">Interno</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>UC (Unidade de Conservação)</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" id="uc-sim" onclick="setToggle('uc','sim')">Sim</button>
+          <button class="toggle-btn" id="uc-nao" onclick="setToggle('uc','nao')">Não</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">🔍 Detecção</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data de Detecção</label>
+          <input type="date" id="dataDeteccao">
+        </div>
+        <div class="form-group">
+          <label>Hora de Detecção</label>
+          <input type="time" id="horaDeteccao">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Forma de Detecção</label>
+        <div class="chip-group" id="formaDeteccao-group">
+          <button class="chip" onclick="toggleChip(this,'Denúncia')">Denúncia</button>
+          <button class="chip" onclick="toggleChip(this,'Gerente da UC')">Gerente da UC</button>
+          <button class="chip" onclick="toggleChip(this,'Funcionários da UC')">Funcionários da UC</button>
+          <button class="chip" onclick="toggleChip(this,'Moradores')">Moradores</button>
+          <button class="chip" id="chip-outro" onclick="toggleChip(this,'Outro')">Outro</button>
+        </div>
+        <input type="text" id="formaOutro" placeholder="Especifique outra forma..." style="display:none; margin-top:8px;">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">👤 Contato</div>
+
+      <div class="form-group">
+        <label>Nome do Contato</label>
+        <input type="text" id="nomeContato" placeholder="Nome completo">
+      </div>
+      <div class="form-group">
+        <label>Orgão / Função</label>
+        <input type="text" id="orgaoContato" placeholder="Ex: IBAMA / Gerente">
+      </div>
+      <div class="form-group">
+        <label>Telefone do Contato</label>
+        <input type="tel" id="telefoneContato" placeholder="(00) 00000-0000">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">🚒 Combate</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Início do Combate – Data</label>
+          <input type="date" id="inicioData">
+        </div>
+        <div class="form-group">
+          <label>Início – Hora</label>
+          <input type="time" id="inicioHora">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Descrição da Ocorrência</label>
+        <textarea id="descricao" rows="3" placeholder="Descreva a ocorrência..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Pessoal Mobilizado</label>
+        <input type="text" id="pessoal" placeholder="Ex: 12 brigadistas, 3 bombeiros">
+      </div>
+      <div class="form-group">
+        <label>Veículos Mobilizados</label>
+        <input type="text" id="veiculos" placeholder="Ex: 2 camionetes, 1 pipa">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Incêndio Debelado – Data</label>
+          <input type="date" id="debeladoData">
+        </div>
+        <div class="form-group">
+          <label>Debelado – Hora</label>
+          <input type="time" id="debeladoHora">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Houve Alimentação?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" id="alim-sim" onclick="setToggle('alim','sim')">Sim</button>
+          <button class="toggle-btn" id="alim-nao" onclick="setToggle('alim','nao')">Não</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Causa do Incêndio</label>
+        <select id="causa">
+          <option value="">Selecione...</option>
+          <option value="Raio">⚡ Raio</option>
+          <option value="Queima Controlada">🔥 Queima Controlada</option>
+          <option value="Acidente">⚠️ Acidente</option>
+          <option value="Criminoso (Doloso)">🚨 Criminoso (Doloso)</option>
+          <option value="Desconhecida">❓ Desconhecida</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">🗺️ Área Queimada</div>
+
+      <div class="area-card">
         <div class="area-card-header">
-          <span>📍 Área Queimada</span>
+          <span>Polígono da Área</span>
           <span class="area-badge" id="area-badge">Não marcada</span>
         </div>
         <div class="area-card-body">
-          <button class="btn-area-mode" id="btn-modo-poligono" onclick="ativarModo('poligono')">
+          <button class="btn-area-mode" id="btn-modo-poligono" onclick="abrirMapaDesenho()">
             <span class="area-mode-icon">✏️</span>
             <span>Desenhar no Mapa</span>
           </button>
@@ -88,21 +250,21 @@
             <span class="dot dot-yellow blink" id="gps-dot"></span>
             <span id="gps-status-text">Aguardando GPS...</span>
           </div>
-          <div style="font-size:11px; color:#777; margin:6px 0;">Ande pelas bordas da área queimada. O GPS registrará automaticamente os pontos.</div>
+          <div style="font-size:11px; color:#777; margin:6px 0;">Ande pelas bordas da área. O GPS registra automaticamente os pontos.</div>
           <div style="display:flex; gap:6px;">
             <button class="btn btn-danger btn-sm" onclick="pararGPS()" style="flex:1">⏹️ Parar</button>
             <button class="btn btn-secondary btn-sm" onclick="adicionarPontoGPSManual()" style="flex:1">📍 + Ponto</button>
           </div>
-          <div style="font-size:11px; color:#666; margin-top:6px;" id="gps-points-count">0 pontos registrados</div>
+          <div style="font-size:11px; color:#666; margin-top:6px;" id="gps-points-count">0 pontos</div>
         </div>
 
         <!-- Coordenadas manuais -->
         <div id="coords-panel" style="display:none; margin-top:10px;">
-          <div style="font-size:11px; color:#666; margin-bottom:8px;">Digite cada ponto (latitude, longitude) e clique em + Adicionar.</div>
+          <div style="font-size:11px; color:#666; margin-bottom:8px;">Digite cada ponto e clique em + Adicionar.</div>
           <div style="display:flex; gap:4px; margin-bottom:6px;">
             <input type="number" id="coord-lat" placeholder="Latitude" step="0.000001" class="coord-input" style="flex:1;">
             <input type="number" id="coord-lng" placeholder="Longitude" step="0.000001" class="coord-input" style="flex:1;">
-            <button class="btn btn-secondary btn-sm" onclick="adicionarCoordenada()" style="white-space:nowrap;">+ Add</button>
+            <button class="btn btn-secondary btn-sm" onclick="adicionarCoordenada()">+ Add</button>
           </div>
           <div id="coords-lista" style="font-size:11px; color:#555; max-height:80px; overflow-y:auto;"></div>
           <div style="display:flex; gap:6px; margin-top:8px;">
@@ -114,44 +276,98 @@
         <div class="coords-display" id="coords-display" style="display:none;"></div>
         <button class="btn btn-secondary btn-sm" id="btn-limpar-area" onclick="clearDrawing()" style="width:100%; margin-top:8px; display:none;">🗑️ Limpar Área</button>
       </div>
-
-      <button class="btn btn-primary" onclick="openSaveModal()" style="width:100%; margin-top:10px">💾 Registrar Incêndio</button>
     </div>
 
-    <div class="sidebar-section">
-      <h3>📸 Foto Georreferenciada</h3>
-      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelected(event)">
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('photo-input').click()" style="width:100%">📷 Capturar Foto</button>
-      <div class="photo-list" id="photo-list"></div>
+    <div class="form-section">
+      <button class="btn btn-primary btn-register" onclick="openSaveModal()">💾 Registrar Incêndio</button>
     </div>
-
-    <div class="sidebar-section">
-      <h3>🔄 Sincronização</h3>
-      <button class="btn btn-secondary btn-sm" onclick="syncData()" style="width:100%">⬆️ Sincronizar Agora</button>
-      <p style="font-size:11px; color:#888; margin-top:6px;" id="sync-status">–</p>
-    </div>
-
   </div>
+</div>
 
+<!-- ABA MAPA -->
+<div class="tab-content" id="tab-mapa" style="display:none;">
   <div id="map"></div>
 </div>
+
+<!-- ABA DASHBOARD -->
+<div class="tab-content" id="tab-dashboard" style="display:none;">
+  <div class="dashboard-scroll">
+    <div class="dash-header">
+      <h2>📊 Dashboard</h2>
+      <div class="export-buttons">
+        <button class="btn-export excel" onclick="exportarExcel()">📊 Excel</button>
+        <button class="btn-export kmz" onclick="exportarKMZ()">🌍 KMZ</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="value" id="total-fires">–</div>
+        <div class="label">Registros</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="total-area">–</div>
+        <div class="label">Hectares</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="this-month">–</div>
+        <div class="label">Este Mês</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="avg-area">–</div>
+        <div class="label">Média (ha)</div>
+      </div>
+    </div>
+
+    <div class="fires-table">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Data/Hora</th>
+            <th>Equipe</th>
+            <th>Município</th>
+            <th>Área (ha)</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="fires-tbody">
+          <tr><td colspan="6" style="text-align:center; color:#666; padding:24px;">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-registrar" onclick="switchTab('registrar')">
+    <span class="nav-icon">🔥</span>
+    <span class="nav-label">Registrar</span>
+  </button>
+  <button class="nav-item" id="nav-mapa" onclick="switchTab('mapa')">
+    <span class="nav-icon">🗺️</span>
+    <span class="nav-label">Mapa</span>
+  </button>
+  <button class="nav-item" id="nav-dashboard" onclick="switchTab('dashboard')">
+    <span class="nav-icon">📊</span>
+    <span class="nav-label">Dashboard</span>
+  </button>
+</nav>
 
 <!-- MODAL SALVAR -->
 <div class="modal-overlay" id="save-modal">
   <div class="modal">
     <h2>✍️ Confirmar e Assinar</h2>
-
     <div style="margin-bottom:16px;">
       <p style="font-size:13px; color:#666; margin-bottom:4px;">Área calculada:</p>
       <p style="font-size:28px; font-weight:700; color:#c0392b;" id="modal-area">– ha</p>
     </div>
-
     <div class="form-group">
       <label>Assinatura do Responsável</label>
       <canvas id="signature-canvas" width="440" height="120"></canvas>
       <button class="btn btn-secondary btn-sm" onclick="clearSignature()" style="margin-top:6px;">🗑️ Limpar</button>
     </div>
-
     <div style="display:flex; gap:10px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeModal()" style="flex:1">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarIncendio()" style="flex:1">✅ Confirmar Registro</button>
@@ -159,10 +375,25 @@
   </div>
 </div>
 
+<!-- MODAL MAPA DESENHO (fullscreen) -->
+<div class="modal-overlay" id="draw-map-modal">
+  <div class="modal modal-fullmap">
+    <div class="modal-map-header">
+      <h2>✏️ Desenhar Área Queimada</h2>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="cancelarDesenhoMapa()">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="confirmarDesenhoMapa()">✅ Confirmar</button>
+      </div>
+    </div>
+    <p style="font-size:12px; color:#666; margin-bottom:6px;">Use a ferramenta de desenho no canto superior direito do mapa para marcar o polígono.</p>
+    <div id="draw-map" style="flex:1; border-radius:8px; min-height:400px;"></div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 <script src="db.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

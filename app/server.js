@@ -53,7 +53,7 @@ db.serialize(() => {
 });
 
 function auth(req, res, next) {
-  const token = req.headers["authorization"] || req.body.token;
+  const token = req.headers["authorization"] || req.body.token || req.query.token;
   if (!token) return res.status(401).json({ error: "Token required" });
   try {
     req.user = jwt.verify(token.replace("Bearer ", ""), SECRET);
