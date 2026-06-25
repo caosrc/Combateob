@@ -44,55 +44,10 @@
 
       <div class="form-group">
         <label>Coordenadas do Local</label>
-        <div class="coord-mode-tabs">
-          <button class="coord-tab active" id="tab-gps-coord" onclick="setCoordMode('gps')">📡 GPS</button>
-          <button class="coord-tab" id="tab-dms-coord" onclick="setCoordMode('dms')">🔢 Graus/Min/Seg</button>
-          <button class="coord-tab" id="tab-dec-coord" onclick="setCoordMode('dec')">📌 Decimal</button>
-        </div>
-
-        <!-- GPS -->
-        <div id="coord-gps-panel">
-          <button class="btn-gps-capture" onclick="capturarGPS()">
-            <span>📡</span> Capturar GPS Atual
-          </button>
-          <div id="gps-coord-result" class="coord-result" style="display:none;"></div>
-        </div>
-
-        <!-- DMS -->
-        <div id="coord-dms-panel" style="display:none;">
-          <div class="dms-row">
-            <span class="dms-label">Lat:</span>
-            <input type="number" class="dms-input" id="lat-g" placeholder="°" min="-90" max="90">
-            <span class="dms-sep">°</span>
-            <input type="number" class="dms-input" id="lat-m" placeholder="'" min="0" max="59">
-            <span class="dms-sep">'</span>
-            <input type="number" class="dms-input" id="lat-s" placeholder='"' min="0" max="59.99" step="0.01">
-            <span class="dms-sep">"</span>
-            <select class="dms-hemi" id="lat-h"><option value="S">S</option><option value="N">N</option></select>
-          </div>
-          <div class="dms-row">
-            <span class="dms-label">Lng:</span>
-            <input type="number" class="dms-input" id="lng-g" placeholder="°" min="-180" max="180">
-            <span class="dms-sep">°</span>
-            <input type="number" class="dms-input" id="lng-m" placeholder="'" min="0" max="59">
-            <span class="dms-sep">'</span>
-            <input type="number" class="dms-input" id="lng-s" placeholder='"' min="0" max="59.99" step="0.01">
-            <span class="dms-sep">"</span>
-            <select class="dms-hemi" id="lng-h"><option value="W">W</option><option value="E">E</option></select>
-          </div>
-          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:8px;" onclick="confirmarDMS()">✅ Confirmar Coordenadas</button>
-          <div id="dms-coord-result" class="coord-result" style="display:none;"></div>
-        </div>
-
-        <!-- Decimal -->
-        <div id="coord-dec-panel" style="display:none;">
-          <div style="display:flex; gap:8px;">
-            <input type="number" id="dec-lat" placeholder="Latitude (-90 a 90)" step="0.000001" class="form-input">
-            <input type="number" id="dec-lng" placeholder="Longitude (-180 a 180)" step="0.000001" class="form-input">
-          </div>
-          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:8px;" onclick="confirmarDecimal()">✅ Confirmar Coordenadas</button>
-          <div id="dec-coord-result" class="coord-result" style="display:none;"></div>
-        </div>
+        <button class="btn-gps-capture" onclick="capturarGPS()">
+          <span>📡</span> Ativar GPS
+        </button>
+        <div id="gps-coord-result" class="coord-result" style="display:none;"></div>
       </div>
 
       <div class="form-group">

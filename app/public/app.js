@@ -62,22 +62,12 @@ function toggleChip(btn, value) {
 }
 
 // ==================== COORDENADAS DO LOCAL ====================
-let coordMode = "gps";
 let coordCapturada = { lat: null, lng: null, coordStr: null };
-
-function setCoordMode(mode) {
-  coordMode = mode;
-  document.getElementById("coord-gps-panel").style.display = mode === "gps" ? "block" : "none";
-  document.getElementById("coord-dms-panel").style.display = mode === "dms" ? "block" : "none";
-  document.getElementById("coord-dec-panel").style.display = mode === "dec" ? "block" : "none";
-  document.querySelectorAll(".coord-tab").forEach(b => b.classList.remove("active"));
-  document.getElementById("tab-" + mode + "-coord").classList.add("active");
-}
 
 function capturarGPS() {
   if (!navigator.geolocation) { alert("Geolocalização não suportada."); return; }
   const btn = document.querySelector(".btn-gps-capture");
-  btn.textContent = "📡 Obtendo GPS...";
+  btn.innerHTML = "<span>📡</span> Obtendo GPS...";
   btn.disabled = true;
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude: lat, longitude: lng } = pos.coords;
@@ -85,46 +75,13 @@ function capturarGPS() {
     const el = document.getElementById("gps-coord-result");
     el.style.display = "block";
     el.innerHTML = `✅ ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    btn.textContent = "📡 Capturar GPS Atual";
+    btn.innerHTML = "<span>📡</span> Ativar GPS";
     btn.disabled = false;
   }, err => {
     alert("Erro ao obter GPS: " + err.message);
-    btn.textContent = "📡 Capturar GPS Atual";
+    btn.innerHTML = "<span>📡</span> Ativar GPS";
     btn.disabled = false;
   }, { enableHighAccuracy: true, timeout: 15000 });
-}
-
-function confirmarDMS() {
-  const latG = parseFloat(document.getElementById("lat-g").value) || 0;
-  const latM = parseFloat(document.getElementById("lat-m").value) || 0;
-  const latS = parseFloat(document.getElementById("lat-s").value) || 0;
-  const latH = document.getElementById("lat-h").value;
-  const lngG = parseFloat(document.getElementById("lng-g").value) || 0;
-  const lngM = parseFloat(document.getElementById("lng-m").value) || 0;
-  const lngS = parseFloat(document.getElementById("lng-s").value) || 0;
-  const lngH = document.getElementById("lng-h").value;
-
-  let lat = latG + latM / 60 + latS / 3600;
-  let lng = lngG + lngM / 60 + lngS / 3600;
-  if (latH === "S") lat = -lat;
-  if (lngH === "W") lng = -lng;
-
-  if (isNaN(lat) || isNaN(lng)) { alert("Preencha as coordenadas corretamente."); return; }
-
-  coordCapturada = { lat, lng, coordStr: `${latG}°${latM}'${latS}"${latH} ${lngG}°${lngM}'${lngS}"${lngH}` };
-  const el = document.getElementById("dms-coord-result");
-  el.style.display = "block";
-  el.innerHTML = `✅ ${coordCapturada.coordStr}<br><small>${lat.toFixed(6)}, ${lng.toFixed(6)}</small>`;
-}
-
-function confirmarDecimal() {
-  const lat = parseFloat(document.getElementById("dec-lat").value);
-  const lng = parseFloat(document.getElementById("dec-lng").value);
-  if (isNaN(lat) || isNaN(lng)) { alert("Preencha as coordenadas corretamente."); return; }
-  coordCapturada = { lat, lng, coordStr: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
-  const el = document.getElementById("dec-coord-result");
-  el.style.display = "block";
-  el.innerHTML = `✅ ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 }
 
 // ==================== MAP PRINCIPAL (aba Mapa) ====================
@@ -527,11 +484,7 @@ async function salvarIncendio() {
 function limparFormulario() {
   ["municipio","localReferencia","nomeContato","orgaoContato","telefoneContato",
    "inicioData","inicioHora","descricao","pessoal","veiculos","debeladoData","debeladoHora",
-   "dataDeteccao","horaDeteccao","formaOutro","causa","dec-lat","dec-lng"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-  ["lat-g","lat-m","lat-s","lng-g","lng-m","lng-s"].forEach(id => {
+   "dataDeteccao","horaDeteccao","formaOutro","causa"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
