@@ -275,13 +275,38 @@
 
         <!-- Coordenadas manuais -->
         <div id="coords-panel" style="display:none; margin-top:10px;">
-          <div style="font-size:11px; color:#666; margin-bottom:8px;">Digite cada ponto e clique em + Adicionar.</div>
-          <div style="display:flex; gap:4px; margin-bottom:6px;">
-            <input type="number" id="coord-lat" placeholder="Latitude" step="0.000001" class="coord-input" style="flex:1;">
-            <input type="number" id="coord-lng" placeholder="Longitude" step="0.000001" class="coord-input" style="flex:1;">
-            <button class="btn btn-secondary btn-sm" onclick="adicionarCoordenada()">+ Add</button>
+          <div style="font-size:11px; color:#666; margin-bottom:8px;">Digite cada ponto em Graus, Minutos e Segundos e clique em + Adicionar.</div>
+
+          <div style="font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Latitude</div>
+          <div style="display:flex;gap:3px;align-items:center;margin-bottom:6px;">
+            <input type="number" id="lat-g" placeholder="°" min="0" max="90" class="coord-input" style="width:46px;">
+            <span style="color:#aaa;font-size:12px;font-weight:700;">°</span>
+            <input type="number" id="lat-m" placeholder="'" min="0" max="59" class="coord-input" style="width:42px;">
+            <span style="color:#aaa;font-size:12px;font-weight:700;">'</span>
+            <input type="number" id="lat-s" placeholder='"' min="0" max="59.999" step="0.001" class="coord-input" style="width:52px;">
+            <span style="color:#aaa;font-size:12px;font-weight:700;">"</span>
+            <select id="lat-dir" class="coord-input" style="width:46px;padding:4px 2px;">
+              <option value="S">S</option>
+              <option value="N">N</option>
+            </select>
           </div>
-          <div id="coords-lista" style="font-size:11px; color:#555; max-height:80px; overflow-y:auto;"></div>
+
+          <div style="font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Longitude</div>
+          <div style="display:flex;gap:3px;align-items:center;margin-bottom:8px;">
+            <input type="number" id="lng-g" placeholder="°" min="0" max="180" class="coord-input" style="width:46px;">
+            <span style="color:#aaa;font-size:12px;font-weight:700;">°</span>
+            <input type="number" id="lng-m" placeholder="'" min="0" max="59" class="coord-input" style="width:42px;">
+            <span style="color:#aaa;font-size:12px;font-weight:700;">'</span>
+            <input type="number" id="lng-s" placeholder='"' min="0" max="59.999" step="0.001" class="coord-input" style="width:52px;">
+            <span style="color:#aaa;font-size:12px;font-weight:700;">"</span>
+            <select id="lng-dir" class="coord-input" style="width:46px;padding:4px 2px;">
+              <option value="O">O</option>
+              <option value="L">L</option>
+            </select>
+          </div>
+
+          <button class="btn btn-secondary btn-sm" onclick="adicionarCoordenada()" style="width:100%;margin-bottom:6px;">+ Adicionar Ponto</button>
+          <div id="coords-lista" style="font-size:11px; color:#555; max-height:90px; overflow-y:auto;"></div>
           <div style="display:flex; gap:6px; margin-top:8px;">
             <button class="btn btn-secondary btn-sm" onclick="fecharCoordsPanel()" style="flex:1">Fechar</button>
             <button class="btn btn-primary btn-sm" onclick="finalizarCoordenadas()" style="flex:1">✅ Confirmar</button>

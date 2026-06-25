@@ -379,13 +379,40 @@ function ativarCoordenadas() {
   renderizarListaCoords();
 }
 
+function dmsParaDecimal(g, m, s, dir) {
+  const dec = Math.abs(parseFloat(g) || 0) + (parseFloat(m) || 0) / 60 + (parseFloat(s) || 0) / 3600;
+  return (dir === "S" || dir === "O" || dir === "W") ? -dec : dec;
+}
+
+function decimalParaDMS(dec, isLng) {
+  const neg = dec < 0;
+  const abs = Math.abs(dec);
+  const g = Math.floor(abs);
+  const mf = (abs - g) * 60;
+  const m = Math.floor(mf);
+  const sf = ((mf - m) * 60).toFixed(2);
+  const dir = isLng ? (neg ? "O" : "L") : (neg ? "S" : "N");
+  return `${g}°${m}'${sf}"${dir}`;
+}
+
 function adicionarCoordenada() {
-  const lat = parseFloat(document.getElementById("coord-lat").value);
-  const lng = parseFloat(document.getElementById("coord-lng").value);
+  const latG = document.getElementById("lat-g").value;
+  const latM = document.getElementById("lat-m").value;
+  const latS = document.getElementById("lat-s").value;
+  const latDir = document.getElementById("lat-dir").value;
+  const lngG = document.getElementById("lng-g").value;
+  const lngM = document.getElementById("lng-m").value;
+  const lngS = document.getElementById("lng-s").value;
+  const lngDir = document.getElementById("lng-dir").value;
+
+  if (latG === "" || lngG === "") { alert("Preencha os graus de Latitude e Longitude."); return; }
+
+  const lat = dmsParaDecimal(latG, latM, latS, latDir);
+  const lng = dmsParaDecimal(lngG, lngM, lngS, lngDir);
   if (isNaN(lat) || isNaN(lng)) { alert("Coordenadas inválidas."); return; }
+
   coordsManual.push([lat, lng]);
-  document.getElementById("coord-lat").value = "";
-  document.getElementById("coord-lng").value = "";
+  ["lat-g","lat-m","lat-s","lng-g","lng-m","lng-s"].forEach(id => document.getElementById(id).value = "");
   renderizarListaCoords();
 }
 
@@ -393,9 +420,9 @@ function renderizarListaCoords() {
   const el = document.getElementById("coords-lista");
   if (coordsManual.length === 0) { el.textContent = "Nenhum ponto adicionado."; return; }
   el.innerHTML = coordsManual.map((c, i) =>
-    `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #eee;">
-      <span>📍 ${i+1}: ${c[0].toFixed(5)}, ${c[1].toFixed(5)}</span>
-      <span style="cursor:pointer;color:#c0392b;" onclick="removerCoord(${i})">✕</span>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #eee;">
+      <span>📍 ${i+1}: ${decimalParaDMS(c[0], false)} / ${decimalParaDMS(c[1], true)}</span>
+      <span style="cursor:pointer;color:#c0392b;padding:0 4px;" onclick="removerCoord(${i})">✕</span>
     </div>`
   ).join("");
 }
