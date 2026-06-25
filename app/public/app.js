@@ -151,7 +151,8 @@ async function loadFiresOnMap() {
     const data = await res.json();
     (data.rows || []).forEach(r => {
       const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
-      const poly = (() => { try { return JSON.parse(r.polygon || "[]"); } catch { return []; } })();
+      let poly = (() => { try { return JSON.parse(r.polygon || "[]"); } catch { return []; } })();
+      if (poly.length > 0 && Array.isArray(poly[0]) && Array.isArray(poly[0][0])) poly = poly[0];
       const info = `<b>Incêndio #${r.id}</b><br>
         Município: ${d.municipio || "–"}<br>
         Equipe: ${r.team}<br>
@@ -164,7 +165,7 @@ async function loadFiresOnMap() {
         polygon.bindPopup(info);
         fireLayerGroup.addLayer(polygon);
       } else if (d.lat && d.lng) {
-        const marker = L.circleMarker([d.lat, d.lng], { radius: 8, color: "#c0392b", fillColor: "#e74c3c", fillOpacity: 0.8 });
+        const marker = L.circleMarker([d.lat, d.lng], { radius: 4, color: "#c0392b", fillColor: "#e74c3c", fillOpacity: 0.6 });
         marker.bindPopup(info);
         fireLayerGroup.addLayer(marker);
       }
@@ -208,10 +209,16 @@ function abrirMapaDesenho() {
       drawMap.on("draw:created", function(e) {
         drawMapItems.clearLayers();
         drawMapItems.addLayer(e.layer);
-        currentPolygon = e.layer.getLatLngs()[0].map(p => [p.lng, p.lat]);
+        let latlngs = e.layer.getLatLngs()[0];
+        if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+        currentPolygon = latlngs.map(p => [p.lng, p.lat]);
       });
       drawMap.on("draw:edited", function(e) {
-        e.layers.eachLayer(layer => { currentPolygon = layer.getLatLngs()[0].map(p => [p.lng, p.lat]); });
+        e.layers.eachLayer(layer => {
+          let latlngs = layer.getLatLngs()[0];
+          if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+          currentPolygon = latlngs.map(p => [p.lng, p.lat]);
+        });
       });
       drawMap.on("draw:deleted", function() { currentPolygon = null; });
 

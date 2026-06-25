@@ -270,12 +270,13 @@ app.get("/report/:id", (req, res) => {
       );
 
     // Linha de assinatura
-    doc.moveTo(ML + 40, footerY + 28).lineTo(ML + 200, footerY + 28).stroke("#aaaaaa");
-    doc.moveTo(ML + 260, footerY + 28).lineTo(ML + 460, footerY + 28).stroke("#aaaaaa");
+    const sigLineX1 = ML + PW / 2 - 100;
+    const sigLineX2 = ML + PW / 2 + 100;
+    doc.moveTo(sigLineX1, footerY + 28).lineTo(sigLineX2, footerY + 28).stroke("#aaaaaa");
     doc.fontSize(7).fillColor(LIGHT).font("Helvetica")
-      .text("Responsável pela Brigada", ML + 40, footerY + 31, { width: 160, align: "center" });
-    doc.fontSize(7).fillColor(LIGHT).font("Helvetica")
-      .text("Fiscal / Supervisor", ML + 260, footerY + 31, { width: 200, align: "center" });
+      .text("Brigadista – Responsável pelo Registro", ML, footerY + 31, { width: PW, align: "center" });
+    doc.fontSize(8).fillColor(DARK).font("Helvetica-Bold")
+      .text(val(d.brigadista), ML, footerY + 40, { width: PW, align: "center" });
 
     // ── PÁGINAS DE FOTOS ──
     const photoList = (() => { try { return JSON.parse(row.photos || "[]"); } catch { return []; } })();
