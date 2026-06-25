@@ -6,6 +6,7 @@ const multer = require("multer");
 const PDFDocument = require("pdfkit");
 const turf = require("@turf/turf");
 const XLSX = require("xlsx");
+const ExcelJS = require("exceljs");
 const archiver = require("archiver");
 const fs = require("fs");
 const path = require("path");
@@ -259,9 +260,9 @@ app.get("/report/:id", (req, res) => {
 
     // ── RODAPÉ ──
     const pageH = 842;
-    const footerY = pageH - 55;
+    const footerY = pageH - 90;
     doc.rect(0, footerY - 5, 595, 1).fill(LINEC);
-    doc.rect(0, footerY - 5, 595, 60).fill("#f9f9f9");
+    doc.rect(0, footerY - 5, 595, 95).fill("#f9f9f9");
 
     doc.fontSize(7.5).fillColor(LIGHT).font("Helvetica")
       .text(
@@ -269,14 +270,24 @@ app.get("/report/:id", (req, res) => {
         ML, footerY + 4, { width: PW, align: "center" }
       );
 
+    // Assinatura digital (imagem)
+    if (row.signature) {
+      try {
+        const sigBuf = Buffer.from(row.signature.replace(/^data:image\/\w+;base64,/, ""), "base64");
+        const sigW = 200, sigH = 45;
+        const sigX = ML + PW / 2 - sigW / 2;
+        doc.image(sigBuf, sigX, footerY + 16, { width: sigW, height: sigH, fit: [sigW, sigH] });
+      } catch (_) {}
+    }
+
     // Linha de assinatura
     const sigLineX1 = ML + PW / 2 - 100;
     const sigLineX2 = ML + PW / 2 + 100;
-    doc.moveTo(sigLineX1, footerY + 28).lineTo(sigLineX2, footerY + 28).stroke("#aaaaaa");
+    doc.moveTo(sigLineX1, footerY + 63).lineTo(sigLineX2, footerY + 63).stroke("#aaaaaa");
     doc.fontSize(7).fillColor(LIGHT).font("Helvetica")
-      .text("Brigadista – Responsável pelo Registro", ML, footerY + 31, { width: PW, align: "center" });
+      .text("Brigadista – Responsável pelo Registro", ML, footerY + 66, { width: PW, align: "center" });
     doc.fontSize(8).fillColor(DARK).font("Helvetica-Bold")
-      .text(val(d.brigadista), ML, footerY + 40, { width: PW, align: "center" });
+      .text(val(d.brigadista), ML, footerY + 75, { width: PW, align: "center" });
 
     // ── PÁGINAS DE FOTOS ──
     const photoList = (() => { try { return JSON.parse(row.photos || "[]"); } catch { return []; } })();
@@ -316,15 +327,32 @@ app.get("/report/:id", (req, res) => {
 });
 
 // ===== EXPORT EXCEL =====
-app.get("/export/excel", auth, (req, res) => {
-  db.all("SELECT * FROM fires ORDER BY createdAt DESC", (err, rows) => {
+app.get("/export/excel", auth, async (req, res) => {
+  db.all("SELECT * FROM fires ORDER BY createdAt DESC", async (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
 
     const fmtDate = (d) => { if (!d) return ""; const [y,m,dd] = d.split("-"); return dd ? `${dd}/${m}/${y}` : d; };
     const uc2text = (v) => v === "sim" ? "Sim" : v === "nao" ? "Não" : v || "";
     const gerado = new Date().toLocaleString("pt-BR");
+    const now = new Date();
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "Brigada Ouro";
+    wb.created = now;
 
     // ── PLANILHA 1: DADOS COMPLETOS ──
+    const ws1 = wb.addWorksheet("Registros Completos");
+
+    const titleRow = ws1.addRow(["RELATÓRIO DE INCÊNDIOS FLORESTAIS – Brigada Ouro"]);
+    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: "FFC0392B" } };
+    ws1.mergeCells("A1:AD1");
+
+    const subRow = ws1.addRow([`Gerado em: ${gerado}   |   Total de registros: ${rows.length}`]);
+    subRow.getCell(1).font = { italic: true, size: 10, color: { argb: "FF555555" } };
+    ws1.mergeCells("A2:AD2");
+
+    ws1.addRow([]);
+
     const headers = [
       "Nº Registro", "Data/Hora Registro", "Equipe",
       "Brigadista Responsável", "Nome da Equipe", "Brigadistas da Equipe",
@@ -338,10 +366,25 @@ app.get("/export/excel", auth, (req, res) => {
       "Houve Alimentação", "Causa do Incêndio",
       "Descrição da Ocorrência", "Área Atingida (ha)", "Qtd. Fotos"
     ];
+    const headerRow = ws1.addRow(headers);
+    headerRow.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC0392B" } };
+      cell.alignment = { vertical: "middle", wrapText: true };
+    });
+    ws1.views = [{ state: "frozen", ySplit: 4 }];
 
-    const dataRows = rows.map(r => {
+    const colWidths = [
+      12, 22, 20, 28, 25, 50, 20, 30, 12, 12,
+      30, 22, 8, 14, 12, 30, 25, 22, 16, 18,
+      14, 18, 14, 30, 30, 16, 25, 50, 14, 10
+    ];
+    ws1.columns = headers.map((h, i) => ({ width: colWidths[i] || 15 }));
+
+    rows.forEach((r, ri) => {
       const d = parseData(r.data);
-      return [
+      const photos = (() => { try { return JSON.parse(r.photos || "[]"); } catch { return []; } })();
+      const dataRow = ws1.addRow([
         `#${String(r.id).padStart(4, "0")}`,
         new Date(r.createdAt).toLocaleString("pt-BR"),
         r.team || "",
@@ -371,54 +414,22 @@ app.get("/export/excel", auth, (req, res) => {
         d.causa || "",
         d.descricao || "",
         r.area ? parseFloat(r.area.toFixed(4)) : "",
-        (() => { try { return JSON.parse(r.photos || "[]").length; } catch { return 0; } })()
-      ];
+        photos.length
+      ]);
+      if (ri % 2 === 0) {
+        dataRow.eachCell(cell => {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF5F5" } };
+        });
+      }
     });
 
-    // Monta sheet com linha de título + cabeçalho + dados
-    const sheetData = [
-      [`RELATÓRIO DE INCÊNDIOS FLORESTAIS – Brigada Ouro`],
-      [`Gerado em: ${gerado}   |   Total de registros: ${rows.length}`],
-      [],
-      headers,
-      ...dataRows
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-    // Larguras das colunas
-    const colWidths = [
-      12, 22, 20,
-      28, 25, 50,
-      20, 30, 12, 12,
-      30, 22, 8,
-      14, 12, 30,
-      25, 22, 16,
-      18, 14,
-      18, 14,
-      30, 30,
-      16, 25,
-      50, 14, 10
-    ];
-    ws["!cols"] = colWidths.map(w => ({ wch: w }));
-
-    // Mescla célula do título (linha 0, colunas 0 até 25)
-    ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }
-    ];
-
-    // Congela a linha de cabeçalho (linha 4 = índice 3 após as 3 linhas de título)
-    ws["!freeze"] = { xSplit: 0, ySplit: 4 };
-
     // ── PLANILHA 2: RESUMO ──
+    const ws2 = wb.addWorksheet("Resumo Estatístico");
     const totalArea = rows.reduce((a, b) => a + (b.area || 0), 0);
-    const now = new Date();
     const thisMonth = rows.filter(r => {
       const d = new Date(r.createdAt);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
-
     const causas = {};
     rows.forEach(r => {
       const d = parseData(r.data);
@@ -426,37 +437,109 @@ app.get("/export/excel", auth, (req, res) => {
       causas[c] = (causas[c] || 0) + 1;
     });
 
-    const resumoData = [
-      ["RESUMO ESTATÍSTICO"],
-      [`Gerado em: ${gerado}`],
-      [],
-      ["INDICADOR", "VALOR"],
-      ["Total de registros", rows.length],
-      ["Área total atingida (ha)", parseFloat(totalArea.toFixed(4))],
-      ["Área média por ocorrência (ha)", rows.length > 0 ? parseFloat((totalArea / rows.length).toFixed(4)) : 0],
-      ["Registros neste mês", thisMonth],
-      [],
-      ["OCORRÊNCIAS POR CAUSA"],
-      ["Causa", "Quantidade"],
-      ...Object.entries(causas).map(([k, v]) => [k, v])
+    const r2t = ws2.addRow(["RESUMO ESTATÍSTICO"]);
+    r2t.getCell(1).font = { bold: true, size: 14, color: { argb: "FFC0392B" } };
+    ws2.mergeCells("A1:B1");
+    const r2s = ws2.addRow([`Gerado em: ${gerado}`]);
+    r2s.getCell(1).font = { italic: true, color: { argb: "FF555555" } };
+    ws2.mergeCells("A2:B2");
+    ws2.addRow([]);
+    const r2h = ws2.addRow(["INDICADOR", "VALOR"]);
+    r2h.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC0392B" } }; });
+    ws2.addRow(["Total de registros", rows.length]);
+    ws2.addRow(["Área total atingida (ha)", parseFloat(totalArea.toFixed(4))]);
+    ws2.addRow(["Área média por ocorrência (ha)", rows.length > 0 ? parseFloat((totalArea / rows.length).toFixed(4)) : 0]);
+    ws2.addRow(["Registros neste mês", thisMonth]);
+    ws2.addRow([]);
+    const r2c = ws2.addRow(["OCORRÊNCIAS POR CAUSA"]);
+    r2c.getCell(1).font = { bold: true };
+    ws2.mergeCells(`A${r2c.number}:B${r2c.number}`);
+    const r2ch = ws2.addRow(["Causa", "Quantidade"]);
+    r2ch.eachCell(c => { c.font = { bold: true }; });
+    Object.entries(causas).forEach(([k, v]) => ws2.addRow([k, v]));
+    ws2.columns = [{ width: 40 }, { width: 20 }];
+
+    // ── PLANILHA 3: FOTOS ──
+    const ws3 = wb.addWorksheet("Fotos das Ocorrências");
+    const fp3t = ws3.addRow(["REGISTRO FOTOGRÁFICO – Brigada Ouro"]);
+    fp3t.getCell(1).font = { bold: true, size: 14, color: { argb: "FFC0392B" } };
+    ws3.mergeCells("A1:E1");
+    const fp3s = ws3.addRow([`Gerado em: ${gerado}`]);
+    fp3s.getCell(1).font = { italic: true, color: { argb: "FF555555" } };
+    ws3.mergeCells("A2:E2");
+    ws3.addRow([]);
+
+    ws3.columns = [
+      { width: 14 },
+      { width: 22 },
+      { width: 20 },
+      { width: 20 },
+      { width: 20 },
     ];
 
-    const ws2 = XLSX.utils.aoa_to_sheet(resumoData);
-    ws2["!cols"] = [{ wch: 40 }, { wch: 20 }];
-    ws2["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
-      { s: { r: 9, c: 0 }, e: { r: 9, c: 1 } }
-    ];
+    let currentRow = 4;
+    let hasPhotos = false;
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Registros Completos");
-    XLSX.utils.book_append_sheet(wb, ws2, "Resumo Estatístico");
+    for (const r of rows) {
+      const photos = (() => { try { return JSON.parse(r.photos || "[]"); } catch { return []; } })();
+      if (photos.length === 0) continue;
+      hasPhotos = true;
+      const d = parseData(r.data);
 
-    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", `attachment; filename=incendios-brigada-${now.toISOString().slice(0,10)}.xlsx`);
-    res.send(buf);
+      const fireHeaderRow = ws3.getRow(currentRow);
+      fireHeaderRow.getCell(1).value = `Incêndio #${String(r.id).padStart(4,"0")} – ${d.municipio || "Sem município"} – ${r.team} – ${new Date(r.createdAt).toLocaleString("pt-BR")}`;
+      fireHeaderRow.getCell(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+      fireHeaderRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC0392B" } };
+      ws3.mergeCells(`A${currentRow}:E${currentRow}`);
+      currentRow++;
+
+      const IMG_W = 120, IMG_H = 90;
+      const PHOTOS_PER_ROW = 4;
+      const rowHeightPx = IMG_H + 10;
+
+      for (let pi = 0; pi < photos.length; pi += PHOTOS_PER_ROW) {
+        const rowPhotos = photos.slice(pi, pi + PHOTOS_PER_ROW);
+
+        const labelRow = ws3.getRow(currentRow);
+        rowPhotos.forEach((_, idx) => {
+          labelRow.getCell(idx + 1).value = `Foto ${pi + idx + 1}`;
+          labelRow.getCell(idx + 1).font = { bold: true, size: 9, color: { argb: "FF555555" } };
+          labelRow.getCell(idx + 1).alignment = { horizontal: "center" };
+        });
+        currentRow++;
+
+        const imgRow = ws3.getRow(currentRow);
+        imgRow.height = rowHeightPx;
+
+        for (let idx = 0; idx < rowPhotos.length; idx++) {
+          try {
+            const photoB64 = rowPhotos[idx].replace(/^data:image\/\w+;base64,/, "");
+            const ext = rowPhotos[idx].startsWith("data:image/png") ? "png" : "jpeg";
+            const imgId = wb.addImage({ base64: photoB64, extension: ext });
+            const col = idx;
+            ws3.addImage(imgId, {
+              tl: { col: col, row: currentRow - 1 },
+              ext: { width: IMG_W, height: IMG_H }
+            });
+          } catch (_) {}
+        }
+        currentRow++;
+      }
+      currentRow++;
+    }
+
+    if (!hasPhotos) {
+      ws3.getRow(currentRow).getCell(1).value = "Nenhuma foto registrada.";
+    }
+
+    try {
+      const buf = await wb.xlsx.writeBuffer();
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename=incendios-brigada-${now.toISOString().slice(0,10)}.xlsx`);
+      res.send(buf);
+    } catch (e) {
+      res.status(500).json({ error: "Erro ao gerar Excel: " + e.message });
+    }
   });
 });
 
