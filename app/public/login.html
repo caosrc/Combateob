@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – Brigada Incêndio V3</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+<div class="auth-container">
+  <div class="auth-box">
+    <div class="logo">🔥</div>
+    <h1>Brigada Incêndio V3</h1>
+    <p>Sistema de Combate a Incêndios Florestais</p>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="form-group">
+      <label>Usuário</label>
+      <input type="text" id="username" placeholder="Digite o usuário" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="password" placeholder="Digite a senha" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+
+    <p style="margin-top:20px; font-size:12px; color:#666;">
+      Demo: admin / admin123 &nbsp;|&nbsp; brigada1 / brigada123
+    </p>
+  </div>
+</div>
+
+<script>
+  if (localStorage.getItem("token")) {
+    window.location.href = "/";
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter") doLogin();
+  });
+
+  async function doLogin() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+    const errorEl = document.getElementById("error-msg");
+
+    errorEl.style.display = "none";
+
+    if (!username || !password) {
+      errorEl.textContent = "Preencha usuário e senha.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    try {
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        errorEl.textContent = data.error;
+        errorEl.style.display = "block";
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("team", data.team);
+      localStorage.setItem("username", data.username);
+      window.location.href = "/";
+    } catch (e) {
+      errorEl.textContent = "Erro de conexão. Verifique a rede.";
+      errorEl.style.display = "block";
+    }
+  }
+</script>
+</body>
+</html>

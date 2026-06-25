@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brigada Incêndio V3 – Mapa</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="offline-banner" id="offline-banner">⚠️ Modo Offline – dados serão sincronizados quando houver conexão</div>
+
+<nav class="navbar">
+  <div class="navbar-brand">🔥 Brigada Incêndio V3</div>
+  <div class="navbar-nav">
+    <a href="/" class="nav-link active">🗺️ Mapa</a>
+    <a href="/dashboard.html" class="nav-link">📊 Dashboard</a>
+    <span class="user-badge" id="user-badge">–</span>
+    <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+  </div>
+</nav>
+
+<div class="main-layout">
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <h3>🔴 Status</h3>
+      <div class="status-bar">
+        <span class="dot dot-green" id="online-dot"></span>
+        <span id="online-text">Online</span>
+        &nbsp;|&nbsp;
+        <span id="pending-count">0 pendentes</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>📍 Ferramentas de Mapa</h3>
+      <p style="font-size:12px; color:#888; margin-bottom:10px;">Use os controles no mapa para desenhar o polígono da área queimada.</p>
+      <button class="btn btn-secondary btn-sm" onclick="clearDrawing()" style="width:100%; margin-bottom:6px;">🗑️ Limpar Desenho</button>
+      <div class="coords-display" id="coords-display">Nenhum polígono desenhado.</div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>🔥 Registrar Incêndio</h3>
+      <div class="form-group">
+        <label>Município</label>
+        <input type="text" id="municipio" placeholder="Nome do município">
+      </div>
+      <div class="form-group">
+        <label>Causa provável</label>
+        <select id="causa">
+          <option value="">Selecione...</option>
+          <option value="raio">Raio</option>
+          <option value="queima_controlada">Queima Controlada</option>
+          <option value="acidente">Acidente</option>
+          <option value="criminoso">Criminoso (Incêndio Doloso)</option>
+          <option value="desconhecida">Desconhecida</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Descrição</label>
+        <textarea id="descricao" rows="2" placeholder="Descreva a ocorrência..." style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;padding:10px;font-size:13px;width:100%;resize:vertical;"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="openSaveModal()" style="width:100%">💾 Registrar Incêndio</button>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>📸 Foto Georreferenciada</h3>
+      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelected(event)">
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('photo-input').click()" style="width:100%">📷 Capturar Foto</button>
+      <div class="photo-list" id="photo-list"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>🔄 Sincronização</h3>
+      <button class="btn btn-secondary btn-sm" onclick="syncData()" style="width:100%">⬆️ Sincronizar Agora</button>
+      <p style="font-size:11px; color:#666; margin-top:6px;" id="sync-status">–</p>
+    </div>
+
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<!-- MODAL SALVAR -->
+<div class="modal-overlay" id="save-modal">
+  <div class="modal">
+    <h2>✍️ Confirmar e Assinar</h2>
+
+    <div style="margin-bottom:16px;">
+      <p style="font-size:13px; color:#aaa; margin-bottom:4px;">Área calculada:</p>
+      <p style="font-size:28px; font-weight:700; color:#ff4444;" id="modal-area">– ha</p>
+    </div>
+
+    <div class="form-group">
+      <label>Assinatura do Responsável</label>
+      <canvas id="signature-canvas" width="440" height="120"></canvas>
+      <button class="btn btn-secondary btn-sm" onclick="clearSignature()" style="margin-top:6px;">🗑️ Limpar</button>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeModal()" style="flex:1">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarIncendio()" style="flex:1">✅ Confirmar Registro</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script src="db.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

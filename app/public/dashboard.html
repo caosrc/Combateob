@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Brigada Incêndio V3</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">🔥 Brigada Incêndio V3</div>
+  <div class="navbar-nav">
+    <a href="/" class="nav-link">🗺️ Mapa</a>
+    <a href="/dashboard.html" class="nav-link active">📊 Dashboard</a>
+    <span class="user-badge" id="user-badge"></span>
+    <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+  </div>
+</nav>
+
+<div class="dashboard-container">
+  <h2 style="margin-bottom:20px; color:#ccc;">📊 Dashboard de Incêndios</h2>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="value" id="total-fires">–</div>
+      <div class="label">Total de Registros</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="total-area">–</div>
+      <div class="label">Hectares Totais</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="this-month">–</div>
+      <div class="label">Este Mês</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="avg-area">–</div>
+      <div class="label">Área Média (ha)</div>
+    </div>
+  </div>
+
+  <div class="fires-table">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Data/Hora</th>
+          <th>Equipe</th>
+          <th>Área (ha)</th>
+          <th>Município</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="fires-tbody">
+        <tr><td colspan="6" style="text-align:center; color:#666; padding:24px;">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem("token");
+  if (!token) window.location.href = "/login.html";
+
+  document.getElementById("user-badge").textContent =
+    localStorage.getItem("username") + " · " + localStorage.getItem("team");
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = "/login.html";
+  }
+
+  async function loadDashboard() {
+    try {
+      const res = await fetch("/dashboard");
+      const data = await res.json();
+
+      document.getElementById("total-fires").textContent = data.total;
+      document.getElementById("total-area").textContent = (data.areaTotal || 0).toFixed(2);
+
+      const now = new Date();
+      const thisMonth = (data.rows || []).filter(r => {
+        const d = new Date(r.createdAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }).length;
+      document.getElementById("this-month").textContent = thisMonth;
+
+      const avg = data.total > 0 ? data.areaTotal / data.total : 0;
+      document.getElementById("avg-area").textContent = avg.toFixed(2);
+
+      const tbody = document.getElementById("fires-tbody");
+      if (!data.rows || data.rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#666; padding:24px;">Nenhum incêndio registrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.rows.map(r => {
+        const parsed = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
+        const date = new Date(r.createdAt).toLocaleString("pt-BR");
+        return `<tr>
+          <td>#${r.id}</td>
+          <td>${date}</td>
+          <td>${r.team}</td>
+          <td>${r.area ? r.area.toFixed(4) : "N/A"}</td>
+          <td>${parsed.municipio || "–"}</td>
+          <td>
+            <a href="/report/${r.id}" target="_blank" class="btn btn-sm btn-secondary">📄 PDF</a>
+          </td>
+        </tr>`;
+      }).join("");
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>
