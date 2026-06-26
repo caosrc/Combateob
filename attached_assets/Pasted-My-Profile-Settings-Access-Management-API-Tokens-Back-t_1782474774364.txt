@@ -1,0 +1,128 @@
+My Profile
+Settings
+
+Access Management
+API Tokens
+
+ Back to view all tokens
+Create Token
+Token name: Edit Cloudflare Workers 
+Permissions
+Select edit or read permissions to apply to your accounts or websites for this token.
+Resources
+Account
+Permissions
+Workers KV Storage
+
+Edit
+Resources
+Account
+Permissions
+Workers Scripts
+
+Edit
+Resources
+Zone
+Permissions
+Workers Routes
+
+Edit
+Resources
+Account
+Permissions
+Account Settings
+
+Read
+Resources
+User
+Permissions
+User Details
+
+Read
+Resources
+Account
+Permissions
+Workers Tail
+
+Read
+Resources
+Account
+Permissions
+Workers R2 Storage
+
+Edit
+Resources
+Account
+Permissions
+Cloudflare Pages
+
+Edit
+Resources
+Account
+Permissions
+Workers Builds Configuration
+
+Edit
+Resources
+Account
+Permissions
+Workers Agents Configuration
+
+Edit
+Resources
+User
+Permissions
+Memberships
+
+Read
+Resources
+Account
+Permissions
+Workers Observability
+
+Edit
+Resources
+Account
+Permissions
+Containers
+
+Edit
+
+Add more
+Account Resources
+Select accounts to include or exclude.
+Include
+Select...
+
+Add more
+Zone Resources
+Select zones to include or exclude.
+Include
+Specific zone
+Select...
+
+Add more
+Client IP Address Filtering
+Select IP addresses or ranges of IP addresses to filter. This filter limits the client IP addresses that can use the API token with Cloudflare. By default, this token will apply to all addresses.
+Operator
+Value
+Select IP addresses or ranges of IP addresses to filter. This filter limits the client IP addresses that can use the API token with Cloudflare. By default, this token will apply to all addresses.
+Select
+
+e.g. 192.168.1.88
+
+Add more
+TTL
+Define how long this token will stay active.
+Press the down arrow key to interact with the calendar and select a date. Press the question mark key to get the keyboard shortcuts for changing dates.
+Start Date
+Press the down arrow key to interact with the calendar and select a date. Press the question mark key to get the keyboard shortcuts for changing dates.
+End Date
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2026 Cloudflare, Inc.
