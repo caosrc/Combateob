@@ -144,36 +144,65 @@ function initMainMap() {
 }
 
 let gpsMapMarker = null;
+let gpsWatchId = null;
+let gpsAtivo = false;
+let gpsPrimeiraFix = false;
 
-function centralizarGPSMapa() {
+function toggleGPSMapa() {
   if (!mainMap) return;
   if (!navigator.geolocation) { alert("Geolocalização não suportada neste dispositivo."); return; }
   const btn = document.getElementById("map-gps-btn");
   const icon = document.getElementById("map-gps-icon");
-  btn.disabled = true;
-  btn.classList.add("active");
+
+  if (gpsAtivo) {
+    navigator.geolocation.clearWatch(gpsWatchId);
+    gpsWatchId = null;
+    gpsAtivo = false;
+    gpsPrimeiraFix = false;
+    if (gpsMapMarker) { mainMap.removeLayer(gpsMapMarker); gpsMapMarker = null; }
+    btn.classList.remove("gps-on");
+    icon.textContent = "📍";
+    return;
+  }
+
+  gpsAtivo = true;
+  gpsPrimeiraFix = false;
+  btn.classList.add("gps-on");
   icon.textContent = "⏳";
-  navigator.geolocation.getCurrentPosition(
+
+  gpsWatchId = navigator.geolocation.watchPosition(
     pos => {
+      if (!gpsAtivo) return;
       const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-      mainMap.setView([lat, lng], 16);
+
+      if (!gpsPrimeiraFix) {
+        mainMap.setView([lat, lng], 16);
+        gpsPrimeiraFix = true;
+        icon.textContent = "📡";
+      }
+
       if (gpsMapMarker) mainMap.removeLayer(gpsMapMarker);
-      gpsMapMarker = L.circleMarker([lat, lng], {
-        radius: 10, color: "#2980b9", fillColor: "#3498db",
-        fillOpacity: 0.85, weight: 3
+      gpsMapMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div class="gps-dot"></div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        }),
+        zIndexOffset: 1000
       }).addTo(mainMap);
-      gpsMapMarker.bindPopup(`📍 Sua localização<br><small>Precisão: ±${accuracy.toFixed(0)}m</small>`).openPopup();
-      btn.disabled = false;
-      btn.classList.remove("active");
-      icon.textContent = "📍";
+      gpsMapMarker.bindPopup(`<b>📡 GPS Ativo</b><br>Precisão: ±${accuracy.toFixed(0)} m`);
     },
     err => {
-      alert("Não foi possível obter sua localização.\n" + err.message);
-      btn.disabled = false;
-      btn.classList.remove("active");
+      if (!gpsAtivo) return;
+      gpsAtivo = false;
+      gpsWatchId = null;
+      gpsPrimeiraFix = false;
+      btn.classList.remove("gps-on");
       icon.textContent = "📍";
+      if (err.code !== 1) alert("Erro de GPS: " + err.message);
     },
-    { enableHighAccuracy: true, timeout: 15000 }
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
   );
 }
 

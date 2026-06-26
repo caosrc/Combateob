@@ -635,6 +635,32 @@ html, body {
 .map-gps-btn:active { transform: scale(0.93); }
 .map-gps-btn.active { background: #fdf0ef; }
 .map-gps-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.map-gps-btn.gps-on { background: #2980b9; box-shadow: 0 2px 10px rgba(41,128,185,0.5); }
+.map-gps-btn.gps-on:active { transform: scale(0.93); }
+
+/* Marcador GPS pulsante */
+.gps-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #3498db;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  position: relative;
+}
+.gps-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: rgba(52, 152, 219, 0.5);
+  animation: gps-ring 2s ease-out infinite;
+}
+@keyframes gps-ring {
+  0%   { width: 100%; height: 100%; opacity: 0.8; }
+  100% { width: 360%; height: 360%; opacity: 0; }
+}
 
 /* ===================== DASHBOARD ===================== */
 .dashboard-scroll {
