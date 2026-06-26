@@ -1,87 +1,82 @@
 # Configuração Cloudflare – Brigada Ouro
 
-## Pré-requisitos
-- Conta Cloudflare (cloudflare.com)
-- Repositório GitHub com este código
+## ✅ JÁ FEITO (pelo agente automaticamente)
+
+| Item | Status | Detalhe |
+|------|--------|---------|
+| Banco D1 criado | ✅ Pronto | Nome: `brigada-ouro` |
+| Database ID no wrangler.toml | ✅ Pronto | `397a7ca6-93fa-4f31-a609-1ff22f6d1231` |
+| Schema (tabelas users + fires) | ✅ Pronto | Criado via API |
 
 ---
 
-## Passo 1 – Criar o banco de dados D1
+## 🔧 O QUE FALTA FAZER (você faz no Cloudflare)
 
-No terminal (ou no Replit Shell):
+### Passo 1 – Push para o GitHub
 
-```bash
-npx wrangler login
-npx wrangler d1 create brigada-ouro
-```
-
-Copie o `database_id` que aparecer e cole no `wrangler.toml`:
-```toml
-database_id = "cole-aqui-o-id"
-```
-
-Depois aplique o schema:
-```bash
-npx wrangler d1 execute brigada-ouro --remote --file=./schema.sql
-```
+No Replit, clique no ícone **Source Control (⎇)** na barra lateral:
+1. Escreva uma mensagem de commit (ex: `deploy cloudflare`)
+2. Clique em **Commit & Push**
 
 ---
 
-## Passo 2 – Conectar GitHub ao Cloudflare Pages
+### Passo 2 – Conectar GitHub ao Cloudflare Pages
 
 1. Acesse **dash.cloudflare.com → Workers & Pages → Create → Pages → Connect to Git**
-2. Escolha seu repositório GitHub
+2. Autorize o GitHub e selecione o repositório **Combateob**
 3. Configure o build:
-   - **Build command**: (deixe vazio)
+   - **Build command**: (deixe **vazio**)
    - **Build output directory**: `app/public`
-   - **Root directory**: `/` (raiz)
+   - **Root directory**: `/`
+4. Clique em **Save and Deploy**
 
 ---
 
-## Passo 3 – Configurar variáveis de ambiente
+### Passo 3 – Variável de ambiente JWT_SECRET
 
-Em **Cloudflare Pages → Settings → Environment variables**, adicione:
+Em **Pages → Settings → Environment variables → Add variable**:
 
-| Variável    | Valor               |
-|-------------|---------------------|
-| JWT_SECRET  | uma-chave-secreta   |
-
----
-
-## Passo 4 – Vincular o banco D1
-
-Em **Pages → Settings → Functions → D1 database bindings**, adicione:
-
-| Nome da variável | Banco de dados   |
-|------------------|------------------|
-| DB               | brigada-ouro     |
+| Variável | Valor |
+|----------|-------|
+| `JWT_SECRET` | qualquer texto longo e secreto (ex: `brigada-ouro-2025-secret`) |
 
 ---
 
-## Passo 5 – Deploy
+### Passo 4 – Vincular o banco D1
 
-Faça push para o GitHub:
-```bash
-git add .
-git commit -m "deploy cloudflare"
-git push
-```
+Em **Pages → Settings → Functions → D1 database bindings → Add binding**:
 
-O Cloudflare Pages detecta o push e faz o deploy automaticamente.
+| Variável | Banco |
+|----------|-------|
+| `DB` | `brigada-ouro` |
 
 ---
 
-## Usuários padrão criados automaticamente
+### Passo 5 – Compatibility flags
 
-| Usuário  | Senha      | Equipe       |
-|----------|------------|--------------|
-| admin    | admin123   | Equipe Alpha |
-| brigada1 | brigada123 | Equipe Beta  |
-
----
-
-## Compatibilidade de flags
-
-No painel Cloudflare Pages → Settings → Functions:
+Em **Pages → Settings → Functions**:
 - **Compatibility flags**: `nodejs_compat`
 - **Compatibility date**: `2024-09-23`
+
+---
+
+### Passo 6 – Redeploy
+
+Após salvar as configurações, clique em **Retry deployment** (ou faça um novo push) para o deploy rodar com as novas variáveis.
+
+---
+
+## Usuários padrão (criados automaticamente na 1ª requisição)
+
+| Usuário | Senha | Equipe |
+|---------|-------|--------|
+| admin | admin123 | Equipe Alpha |
+| brigada1 | brigada123 | Equipe Beta |
+
+---
+
+## Banco D1 – Referência
+
+- **Nome**: `brigada-ouro`
+- **ID**: `397a7ca6-93fa-4f31-a609-1ff22f6d1231`
+- **Account ID**: `eabd9971defcda96c2d754fa51d20d4f`

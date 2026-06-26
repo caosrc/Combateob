@@ -8,4 +8,4 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "brigada-ouro"
-database_id = "SEU_DATABASE_ID_AQUI"
+database_id = "397a7ca6-93fa-4f31-a609-1ff22f6d1231"
