@@ -324,7 +324,7 @@ function confirmarDesenhoMapa() {
 }
 
 // ==================== MODO GPS (polígono) ====================
-let gpsWatchId = null;
+let gpsAreaWatchId = null;
 let gpsPoints = [];
 let gpsMarkers = [];
 let gpsPolyline = null;
@@ -355,7 +355,7 @@ function ativarGPS() {
   document.getElementById("gps-points-count").textContent = "0 pontos";
   document.getElementById("gps-status-text").textContent = "Aguardando GPS...";
   if (!navigator.geolocation) { alert("Geolocalização não suportada."); return; }
-  gpsWatchId = navigator.geolocation.watchPosition(
+  gpsAreaWatchId = navigator.geolocation.watchPosition(
     pos => {
       const { latitude, longitude, accuracy } = pos.coords;
       document.getElementById("gps-status-text").textContent =
@@ -389,9 +389,9 @@ function adicionarPontoGPSManual() {
 }
 
 function pararGPS() {
-  if (gpsWatchId !== null) {
-    navigator.geolocation.clearWatch(gpsWatchId);
-    gpsWatchId = null;
+  if (gpsAreaWatchId !== null) {
+    navigator.geolocation.clearWatch(gpsAreaWatchId);
+    gpsAreaWatchId = null;
   }
   if (gpsPoints.length >= 3) {
     currentPolygon = gpsPoints.map(([lat, lng]) => [lng, lat]);
@@ -693,9 +693,8 @@ function limparFormulario() {
   toggleState.local = null; toggleState.uc = null; toggleState.alim = null;
   document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
   coordCapturada = { lat: null, lng: null, coordStr: null };
-  document.getElementById("gps-coord-result").style.display = "none";
-  document.getElementById("dms-coord-result").style.display = "none";
-  document.getElementById("dec-coord-result").style.display = "none";
+  const gpsRes = document.getElementById("gps-coord-result");
+  if (gpsRes) gpsRes.style.display = "none";
   clearDrawing();
   clearSignature();
 }

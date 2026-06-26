@@ -1,4 +1,4 @@
-const CACHE_NAME = "brigada-ouro-v1";
+const CACHE_NAME = "brigada-ouro-v2";
 const URLS = [
   "/",
   "/index.html",
