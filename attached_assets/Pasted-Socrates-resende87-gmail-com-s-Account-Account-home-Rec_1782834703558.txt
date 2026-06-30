@@ -1,0 +1,193 @@
+Socrates.resende87@gmail.com's Account
+Account home
+
+Recents
+
+Domains
+Observe
+
+Investigate
+
+Analytics
+Build
+
+Compute
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Run
+VPC
+
+Email Service
+Workers plans
+Flagship
+
+AI
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Manage account
+
+Workers & Pages
+brigada-ouro
+Deployments
+Metrics
+Custom domains
+Settings
+Production
+Automatic deployments enabled
+Domains:
+brigada-ouro.pages.dev
+Environment
+Source
+Deployment
+Status
+Production
+main
+https://9a55a63e.brigada-ouro.pages.dev
+4 days ago
+Details
+All deployments
+Environment
+Source
+Deployment
+Status
+Production
+main
+No deployment available
+15 minutes ago
+Details
+
+Production
+main
+No deployment available
+an hour ago
+Details
+
+Production
+main
+No deployment available
+an hour ago
+Details
+
+Production
+main
+6194d1c
+Add account recovery email screenshot Replit-Commit-Author: Agent
+No deployment available
+2 hours ago
+Details
+
+Production
+main
+20fa72f
+Remove wrangler.toml configuration and add account asset file Replit-Commit-Author: Agent
+No deployment available
+2 hours ago
+Details
+
+Production
+main
+6194d1c
+Add account recovery email screenshot Replit-Commit-Author: Agent
+No deployment available
+3 hours ago
+Details
+
+Production
+main
+6194d1c
+Add account recovery email screenshot Replit-Commit-Author: Agent
+No deployment available
+3 hours ago
+Details
+
+Production
+main
+589feed
+fix: add npm install build command for Cloudflare Pages Functions
+No deployment available
+3 hours ago
+Details
+
+Production
+main
+58200ba
+Refactor app initialization and simplify HTML markup Replit-Commit-Author: Agent
+No deployment available
+3 hours ago
+Details
+
+Production
+main
+bbcb113
+Fix critical issues preventing app functionality and data saving Fixes critical JavaScript SyntaxError due to duplicate `gpsWatchId` variable declaration, resolves issues with form clearing by adding null checks for non-existent HTML elements, and updates service worker cache version. Replit-Commit-Author: Agent Replit-Commit-Session-Id: 0abe80bf-afcf-44c1-ad71-d3bbfd5c14b9 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 4730c82a-22f1-42da-860c-6c61ca3df7ba Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/41a67e46-defd-411e-a161-911355f93a23/0abe80bf-afcf-44c1-ad71-d3bbfd5c14b9/etqnJF7 Replit-Helium-Checkpoint-Created: true
+No deployment available
+4 days ago
+Details
+
+Production
+main
+https://9a55a63e.brigada-ouro.pages.dev
+4 days ago
+Details
+
+Production
+main
+ddce410
+Add screenshot of the deployed application Add a screenshot of the deployed brigada-ouro application to the attached assets. Replit-Commit-Author: Agent Replit-Commit-Session-Id: 0abe80bf-afcf-44c1-ad71-d3bbfd5c14b9 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 5a2d464e-b232-4db1-a0cf-a05d87687504 Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/41a67e46-defd-411e-a161-911355f93a23/0abe80bf-afcf-44c1-ad71-d3bbfd5c14b9/etqnJF7 Replit-Helium-Checkpoint-Created: true
+No deployment available
+4 days ago
+Details
+
+Production
+main
+https://a448763a.brigada-ouro.pages.dev
+4 days ago
+Details
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2026 Cloudflare, Inc.
+Need more help?
+
+Good afternoon.
+What are we doing today?
+
+
+Find my account ID
+Locate account and zone IDs
+
+Orange vs Gray Cloud
+What is the difference?
+
+Bind R2 to a Worker
+Connect object storage
+
+Encrypted Client Hello
+Enable ECH for my zone
+
+Durable Objects
+Explain how they work
+Chats are recorded to improve the service and are processed in accordance with our Privacy Policy.
+
+What can we help you with?
