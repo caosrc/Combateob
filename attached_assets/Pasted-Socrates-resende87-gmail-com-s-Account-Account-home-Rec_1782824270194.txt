@@ -1,0 +1,248 @@
+Socrates.resende87@gmail.com's Account
+Account home
+
+Recents
+
+Domains
+Observe
+
+Investigate
+
+Analytics
+Build
+
+Compute
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Run
+VPC
+
+Email Service
+Workers plans
+Flagship
+
+AI
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Manage account
+
+← brigada-ouro
+Production
+Deployment details
+Deployment ID: 62f43bec-f731-4ba9-9fa7-d62b29ef779e
+
+Deployment URL: https://62f43bec.brigada-ouro.pages.dev
+
+Repository:
+caosrc/Combateob
+Branch:
+main
+58200ba
+Refactor app initialization and simplify HTML markup Replit-Commit-Author: Agent
+Status:
+failure
+9:49AM June 30, 2026
+Duration:
+7s
+›
+Build settings
+1
+Build log
+Functions
+Redirects
+Headers
+Build log
+initialize
+2s
+clone repo
+2s
+build
+4s
+deploy
+—
+2026-06-30T12:48:59.318681Z	Cloning repository...
+2026-06-30T12:49:00.60996Z	From https://github.com/caosrc/Combateob
+2026-06-30T12:49:00.610259Z	 * branch            58200baf77d0e86864258e224bf7a840e745470f -> FETCH_HEAD
+2026-06-30T12:49:00.610315Z	
+2026-06-30T12:49:00.642832Z	HEAD is now at 58200ba Refactor app initialization and simplify HTML markup
+2026-06-30T12:49:00.6432Z	
+2026-06-30T12:49:00.695247Z	
+2026-06-30T12:49:00.695682Z	Using v2 root directory strategy
+2026-06-30T12:49:00.713933Z	Success: Finished cloning repository files
+2026-06-30T12:49:02.405163Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-06-30T12:49:02.407169Z	
+2026-06-30T12:49:02.407309Z	Found wrangler.toml file. Reading build configuration...
+2026-06-30T12:49:02.415852Z	pages_build_output_dir: app/public
+2026-06-30T12:49:02.416245Z	Build environment variables: (none found)
+2026-06-30T12:49:02.643441Z	Successfully read the Wrangler configuration file.
+2026-06-30T12:49:02.644276Z	No build command specified. Skipping build step.
+2026-06-30T12:49:02.645192Z	Found Functions directory at /functions. Uploading.
+2026-06-30T12:49:02.70545Z	 ⛅️ wrangler 3.114.17
+2026-06-30T12:49:02.706012Z	-------------------
+2026-06-30T12:49:03.944616Z	[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 6 errors:[0m
+2026-06-30T12:49:03.945145Z	
+2026-06-30T12:49:03.945255Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "jose"[0m
+2026-06-30T12:49:03.945351Z	  
+2026-06-30T12:49:03.945519Z	      [[catchall]].js:4:35:
+2026-06-30T12:49:03.945675Z	  [37m      4 │ import { SignJWT, jwtVerify } from [32m"jose"[37m;
+2026-06-30T12:49:03.945811Z	          ╵                                    [32m~~~~~~[0m
+2026-06-30T12:49:03.945938Z	  
+2026-06-30T12:49:03.946051Z	    You can mark the path "jose" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.94618Z	  
+2026-06-30T12:49:03.946269Z	  
+2026-06-30T12:49:03.946404Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "bcryptjs"[0m
+2026-06-30T12:49:03.94657Z	  
+2026-06-30T12:49:03.94669Z	      [[catchall]].js:5:19:
+2026-06-30T12:49:03.946821Z	  [37m      5 │ import bcrypt from [32m"bcryptjs"[37m;
+2026-06-30T12:49:03.946912Z	          ╵                    [32m~~~~~~~~~~[0m
+2026-06-30T12:49:03.946997Z	  
+2026-06-30T12:49:03.947152Z	    You can mark the path "bcryptjs" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.947239Z	  
+2026-06-30T12:49:03.947333Z	  
+2026-06-30T12:49:03.947383Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "pdf-lib"[0m
+2026-06-30T12:49:03.947426Z	  
+2026-06-30T12:49:03.947467Z	      [[catchall]].js:6:48:
+2026-06-30T12:49:03.947517Z	  [37m      6 │ import { PDFDocument, rgb, StandardFonts } from [32m"pdf-lib"[37m;
+2026-06-30T12:49:03.94756Z	          ╵                                                 [32m~~~~~~~~~[0m
+2026-06-30T12:49:03.947616Z	  
+2026-06-30T12:49:03.947658Z	    You can mark the path "pdf-lib" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.947706Z	  
+2026-06-30T12:49:03.94777Z	  
+2026-06-30T12:49:03.947825Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "xlsx"[0m
+2026-06-30T12:49:03.947887Z	  
+2026-06-30T12:49:03.947945Z	      [[catchall]].js:7:22:
+2026-06-30T12:49:03.948Z	  [37m      7 │ import * as XLSX from [32m"xlsx"[37m;
+2026-06-30T12:49:03.948047Z	          ╵                       [32m~~~~~~[0m
+2026-06-30T12:49:03.948093Z	  
+2026-06-30T12:49:03.948138Z	    You can mark the path "xlsx" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.948182Z	  
+2026-06-30T12:49:03.948229Z	  
+2026-06-30T12:49:03.948287Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "fflate"[0m
+2026-06-30T12:49:03.94834Z	  
+2026-06-30T12:49:03.948392Z	      [[catchall]].js:8:33:
+2026-06-30T12:49:03.948442Z	  [37m      8 │ import { strToU8, zipSync } from [32m"fflate"[37m;
+2026-06-30T12:49:03.948491Z	          ╵                                  [32m~~~~~~~~[0m
+2026-06-30T12:49:03.948541Z	  
+2026-06-30T12:49:03.948592Z	    You can mark the path "fflate" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.94864Z	  
+2026-06-30T12:49:03.948688Z	  
+2026-06-30T12:49:03.948739Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "@turf/turf"[0m
+2026-06-30T12:49:03.9488Z	  
+2026-06-30T12:49:03.94885Z	      [[catchall]].js:9:22:
+2026-06-30T12:49:03.948908Z	  [37m      9 │ import * as turf from [32m"@turf/turf"[37m;
+2026-06-30T12:49:03.948967Z	          ╵                       [32m~~~~~~~~~~~~[0m
+2026-06-30T12:49:03.94902Z	  
+2026-06-30T12:49:03.949076Z	    You can mark the path "@turf/turf" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.949135Z	  
+2026-06-30T12:49:03.94919Z	  
+2026-06-30T12:49:03.949243Z	
+2026-06-30T12:49:03.949297Z	
+2026-06-30T12:49:03.951105Z	
+2026-06-30T12:49:03.953818Z	[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 6 errors:[0m
+2026-06-30T12:49:03.953964Z	
+2026-06-30T12:49:03.954038Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "jose"[0m
+2026-06-30T12:49:03.954112Z	  
+2026-06-30T12:49:03.954202Z	      [[catchall]].js:4:35:
+2026-06-30T12:49:03.95427Z	  [37m      4 │ import { SignJWT, jwtVerify } from [32m"jose"[37m;
+2026-06-30T12:49:03.954341Z	          ╵                                    [32m~~~~~~[0m
+2026-06-30T12:49:03.954462Z	  
+2026-06-30T12:49:03.954534Z	    You can mark the path "jose" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.954604Z	  
+2026-06-30T12:49:03.954654Z	  
+2026-06-30T12:49:03.954725Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "bcryptjs"[0m
+2026-06-30T12:49:03.9548Z	  
+2026-06-30T12:49:03.954861Z	      [[catchall]].js:5:19:
+2026-06-30T12:49:03.954921Z	  [37m      5 │ import bcrypt from [32m"bcryptjs"[37m;
+2026-06-30T12:49:03.954974Z	          ╵                    [32m~~~~~~~~~~[0m
+2026-06-30T12:49:03.955026Z	  
+2026-06-30T12:49:03.955063Z	    You can mark the path "bcryptjs" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.955097Z	  
+2026-06-30T12:49:03.955127Z	  
+2026-06-30T12:49:03.955162Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "pdf-lib"[0m
+2026-06-30T12:49:03.955194Z	  
+2026-06-30T12:49:03.955231Z	      [[catchall]].js:6:48:
+2026-06-30T12:49:03.955279Z	  [37m      6 │ import { PDFDocument, rgb, StandardFonts } from [32m"pdf-lib"[37m;
+2026-06-30T12:49:03.955319Z	          ╵                                                 [32m~~~~~~~~~[0m
+2026-06-30T12:49:03.955359Z	  
+2026-06-30T12:49:03.955405Z	    You can mark the path "pdf-lib" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.955439Z	  
+2026-06-30T12:49:03.955471Z	  
+2026-06-30T12:49:03.955511Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "xlsx"[0m
+2026-06-30T12:49:03.955545Z	  
+2026-06-30T12:49:03.955577Z	      [[catchall]].js:7:22:
+2026-06-30T12:49:03.955612Z	  [37m      7 │ import * as XLSX from [32m"xlsx"[37m;
+2026-06-30T12:49:03.955647Z	          ╵                       [32m~~~~~~[0m
+2026-06-30T12:49:03.955686Z	  
+2026-06-30T12:49:03.955732Z	    You can mark the path "xlsx" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.955782Z	  
+2026-06-30T12:49:03.955817Z	  
+2026-06-30T12:49:03.955863Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "fflate"[0m
+2026-06-30T12:49:03.95594Z	  
+2026-06-30T12:49:03.955986Z	      [[catchall]].js:8:33:
+2026-06-30T12:49:03.956021Z	  [37m      8 │ import { strToU8, zipSync } from [32m"fflate"[37m;
+2026-06-30T12:49:03.956078Z	          ╵                                  [32m~~~~~~~~[0m
+2026-06-30T12:49:03.95612Z	  
+2026-06-30T12:49:03.956155Z	    You can mark the path "fflate" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.956186Z	  
+2026-06-30T12:49:03.956216Z	  
+2026-06-30T12:49:03.956248Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "@turf/turf"[0m
+2026-06-30T12:49:03.956279Z	  
+2026-06-30T12:49:03.956316Z	      [[catchall]].js:9:22:
+2026-06-30T12:49:03.956349Z	  [37m      9 │ import * as turf from [32m"@turf/turf"[37m;
+2026-06-30T12:49:03.95639Z	          ╵                       [32m~~~~~~~~~~~~[0m
+2026-06-30T12:49:03.956424Z	  
+2026-06-30T12:49:03.956459Z	    You can mark the path "@turf/turf" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T12:49:03.95649Z	  
+2026-06-30T12:49:03.95652Z	  
+2026-06-30T12:49:03.956551Z	
+2026-06-30T12:49:03.956582Z	
+2026-06-30T12:49:03.963261Z	🪵  Logs were written to "/root/.config/.wrangler/logs/wrangler-2026-06-30_12-49-03_322.log"
+2026-06-30T12:49:04.056889Z	Failed building Pages Functions.
+2026-06-30T12:49:04.828429Z	Failed: generating Pages Functions failed. Check the logs above for more information. If this continues for an unknown reason, contact support: https://cfl.re/3WgEyrH
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2026 Cloudflare, Inc.
+Need more help?
+
+Good morning.
+What are we doing today?
+
+
+Transfer a domain
+Walk me through the process
+
+Deploy a Worker
+Help me get started
+
+Bind R2 to a Worker
+Connect object storage
+
+Find my account ID
+Locate account and zone IDs
+
+Encrypted Client Hello
+Enable ECH for my zone
+Chats are recorded to improve the service and are processed in accordance with our Privacy Policy.
+
+What can we help you with?
