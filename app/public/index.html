@@ -335,6 +335,11 @@
       🔄
     </button>
   </div>
+  <!-- Barra de confirmação do polígono (aparece só no modo de desenho) -->
+  <div id="map-draw-confirm" style="display:none; position:absolute; bottom:72px; left:0; right:0; z-index:1000; padding:10px 12px; background:#fff; border-top:1px solid #e0e0e0; box-shadow:0 -2px 8px rgba(0,0,0,.12); gap:10px;">
+    <button class="btn btn-secondary" onclick="cancelarDesenhoMapaPrincipal()" style="flex:1;">✕ Cancelar</button>
+    <button class="btn btn-primary" onclick="confirmarDesenhoMapaPrincipal()" style="flex:1;">✅ Confirmar Área</button>
+  </div>
 </div>
 
 <!-- ABA DASHBOARD -->
@@ -439,20 +444,6 @@
   </div>
 </div>
 
-<!-- MODAL MAPA DESENHO (fullscreen) -->
-<div class="modal-overlay" id="draw-map-modal">
-  <div class="modal modal-fullmap">
-    <div class="modal-map-header">
-      <h2>✏️ Desenhar Área Queimada</h2>
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-secondary btn-sm" onclick="cancelarDesenhoMapa()">Cancelar</button>
-        <button class="btn btn-primary btn-sm" onclick="confirmarDesenhoMapa()">✅ Confirmar</button>
-      </div>
-    </div>
-    <p style="font-size:12px; color:#666; margin-bottom:6px;">Use a ferramenta de desenho no canto superior direito do mapa para marcar o polígono.</p>
-    <div id="draw-map" style="flex:1; border-radius:8px; min-height:400px;"></div>
-  </div>
-</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>

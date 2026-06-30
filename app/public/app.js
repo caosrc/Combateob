@@ -239,88 +239,98 @@ async function loadFiresOnMap() {
   } catch (e) { console.log("Erro ao carregar mapa:", e); }
 }
 
-// ==================== MAPA DE DESENHO (modal) ====================
-let drawMap = null;
-let drawMapItems = null;
-let drawControl = null;
-let drawControlAdded = false;
+// ==================== MAPA DE DESENHO (no mapa principal) ====================
 let currentPolygon = null;
+let drawMainControl = null;
+let drawMainItems = null;
+let modoDesenhoAtivo = false;
 
 function abrirMapaDesenho() {
-  document.getElementById("draw-map-modal").classList.add("active");
+  switchTab("mapa");
   setTimeout(() => {
-    if (!drawMapInitialized) {
-      const center = coordCapturada.lat
-        ? [coordCapturada.lat, coordCapturada.lng]
-        : [-15.78, -47.93];
-      drawMap = L.map("draw-map").setView(center, coordCapturada.lat ? 15 : 5);
-      const osmDraw = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" });
-      const satDraw = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "© Esri" });
-      satDraw.addTo(drawMap);
-      L.control.layers({ "🛰️ Satélite": satDraw, "🗺️ OSM": osmDraw }).addTo(drawMap);
-      drawMapItems = new L.FeatureGroup();
-      drawMap.addLayer(drawMapItems);
-      drawControl = new L.Control.Draw({
-        draw: {
-          polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: "#ff4444", weight: 2, fillOpacity: 0.2 } },
-          polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false
-        },
-        edit: { featureGroup: drawMapItems }
-      });
-      drawMap.addControl(drawControl);
-      drawControlAdded = true;
-      drawMap.on("draw:created", function(e) {
-        drawMapItems.clearLayers();
-        drawMapItems.addLayer(e.layer);
-        let latlngs = e.layer.getLatLngs()[0];
-        if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
-        currentPolygon = latlngs.map(p => [p.lng, p.lat]);
-      });
-      drawMap.on("draw:edited", function(e) {
-        e.layers.eachLayer(layer => {
-          let latlngs = layer.getLatLngs()[0];
-          if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
-          currentPolygon = latlngs.map(p => [p.lng, p.lat]);
-        });
-      });
-      drawMap.on("draw:deleted", function() { currentPolygon = null; });
-
-      // GPS locate
-      if (coordCapturada.lat) {
-        L.marker([coordCapturada.lat, coordCapturada.lng])
-          .addTo(drawMap)
-          .bindPopup("📍 Local do Incêndio")
-          .openPopup();
-      } else {
-        drawMap.locate({ watch: false });
-        drawMap.on("locationfound", e => {
-          drawMap.setView(e.latlng, 15);
-          L.marker(e.latlng).addTo(drawMap).bindPopup("📍 Sua posição");
-        });
-      }
-      drawMapInitialized = true;
-    } else {
-      drawMap.invalidateSize();
+    mainMap.invalidateSize();
+    // Centraliza no ponto GPS capturado, se disponível
+    if (coordCapturada.lat) {
+      mainMap.setView([coordCapturada.lat, coordCapturada.lng], 16);
     }
-    // Inicia desenho automaticamente
-    setTimeout(() => {
-      const btn = document.querySelector("#draw-map-modal .leaflet-draw-draw-polygon");
-      if (btn) btn.click();
-    }, 300);
-  }, 200);
+    // Ativa GPS do mapa se ainda não estiver ativo
+    if (!gpsAtivo) toggleGPSMapa();
+    iniciarDesenhoNoMapaPrincipal();
+  }, 350);
 }
 
-function cancelarDesenhoMapa() {
-  document.getElementById("draw-map-modal").classList.remove("active");
+function iniciarDesenhoNoMapaPrincipal() {
+  if (!mainMap) return;
+  modoDesenhoAtivo = true;
+
+  if (!drawMainItems) {
+    drawMainItems = new L.FeatureGroup();
+    mainMap.addLayer(drawMainItems);
+  } else {
+    drawMainItems.clearLayers();
+  }
+
+  if (drawMainControl) {
+    mainMap.removeControl(drawMainControl);
+  }
+  drawMainControl = new L.Control.Draw({
+    draw: {
+      polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: "#ff4444", weight: 2, fillOpacity: 0.2 } },
+      polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false
+    },
+    edit: { featureGroup: drawMainItems }
+  });
+  mainMap.addControl(drawMainControl);
+
+  mainMap.off("draw:created").on("draw:created", function(e) {
+    drawMainItems.clearLayers();
+    drawMainItems.addLayer(e.layer);
+    let latlngs = e.layer.getLatLngs()[0];
+    if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+    currentPolygon = latlngs.map(p => [p.lng, p.lat]);
+  });
+  mainMap.off("draw:edited").on("draw:edited", function(e) {
+    e.layers.eachLayer(layer => {
+      let latlngs = layer.getLatLngs()[0];
+      if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
+      currentPolygon = latlngs.map(p => [p.lng, p.lat]);
+    });
+  });
+  mainMap.off("draw:deleted").on("draw:deleted", function() { currentPolygon = null; });
+
+  // Mostra barra de confirmação
+  const bar = document.getElementById("map-draw-confirm");
+  bar.style.display = "flex";
+
+  // Inicia a ferramenta de polígono automaticamente
+  setTimeout(() => {
+    const btn = document.querySelector(".leaflet-draw-draw-polygon");
+    if (btn) btn.click();
+  }, 300);
 }
 
-function confirmarDesenhoMapa() {
+function confirmarDesenhoMapaPrincipal() {
   if (!currentPolygon || currentPolygon.length < 3) {
     alert("Desenhe um polígono no mapa antes de confirmar.");
     return;
   }
-  document.getElementById("draw-map-modal").classList.remove("active");
+  encerrarModoDesenho();
   atualizarAreaDisplay();
+  switchTab("registrar");
+}
+
+function cancelarDesenhoMapaPrincipal() {
+  encerrarModoDesenho();
+  switchTab("registrar");
+}
+
+function encerrarModoDesenho() {
+  if (drawMainControl) {
+    mainMap.removeControl(drawMainControl);
+    drawMainControl = null;
+  }
+  document.getElementById("map-draw-confirm").style.display = "none";
+  modoDesenhoAtivo = false;
 }
 
 // ==================== MODO GPS (polígono) ====================
@@ -508,7 +518,7 @@ function clearDrawing() {
   gpsMarkers.forEach(m => { if (mainMap) mainMap.removeLayer(m); });
   if (gpsPolyline && mainMap) mainMap.removeLayer(gpsPolyline);
   gpsMarkers = []; gpsPolyline = null;
-  if (drawMapItems) drawMapItems.clearLayers();
+  if (drawMainItems) drawMainItems.clearLayers();
   resetAreaDisplay();
   desativarModoAtual();
 }
