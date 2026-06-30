@@ -1,0 +1,168 @@
+2026-06-30T18:09:39.650453Z	Cloning repository...
+2026-06-30T18:09:40.422933Z	From https://github.com/caosrc/Combateob
+2026-06-30T18:09:40.423269Z	 * branch            2888fc90c554d624aa6c13d0051ef47a846b4897 -> FETCH_HEAD
+2026-06-30T18:09:40.423342Z	
+2026-06-30T18:09:40.458425Z	HEAD is now at 2888fc9 Force Node.js 20 for build to avoid npm installation errors
+2026-06-30T18:09:40.458749Z	
+2026-06-30T18:09:40.502476Z	
+2026-06-30T18:09:40.502857Z	Using v2 root directory strategy
+2026-06-30T18:09:40.520394Z	Success: Finished cloning repository files
+2026-06-30T18:09:42.337301Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-06-30T18:09:42.337907Z	
+2026-06-30T18:09:42.338542Z	Found wrangler.toml file. Reading build configuration...
+2026-06-30T18:09:42.348582Z	pages_build_output_dir: app/public
+2026-06-30T18:09:42.348733Z	Build environment variables: (none found)
+2026-06-30T18:09:42.54221Z	Successfully read the Wrangler configuration file.
+2026-06-30T18:09:42.833713Z	Detected the following tools from environment: nodejs@20.20.0, npm@10.9.2
+2026-06-30T18:09:42.834188Z	Installing nodejs 20.20.0
+2026-06-30T18:09:43.488532Z	Trying to update node-build... ok
+2026-06-30T18:09:43.562207Z	To follow progress, use 'tail -f /tmp/node-build.20260630180943.800.log' or pass --verbose
+2026-06-30T18:09:43.617343Z	Downloading node-v20.20.0-linux-x64.tar.gz...
+2026-06-30T18:09:43.750492Z	-> https://nodejs.org/dist/v20.20.0/node-v20.20.0-linux-x64.tar.gz
+2026-06-30T18:09:46.206353Z	
+2026-06-30T18:09:46.20658Z	WARNING: node-v20.20.0-linux-x64 is past its end of life and is now unsupported.
+2026-06-30T18:09:46.206639Z	It no longer receives bug fixes or security updates.
+2026-06-30T18:09:46.206689Z	
+2026-06-30T18:09:46.206742Z	Installing node-v20.20.0-linux-x64...
+2026-06-30T18:09:46.629584Z	Installed node-v20.20.0-linux-x64 to /opt/buildhome/.asdf/installs/nodejs/20.20.0
+2026-06-30T18:09:46.629942Z	
+2026-06-30T18:09:47.293789Z	Installing project dependencies: npm clean-install --progress=false
+2026-06-30T18:10:59.22694Z	npm error Exit handler never called!
+2026-06-30T18:10:59.227852Z	npm error This is an error with npm itself. Please report this error at:
+2026-06-30T18:10:59.227972Z	npm error   <https://github.com/npm/cli/issues>
+2026-06-30T18:10:59.228109Z	npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-30T18_09_47_549Z-debug-0.log
+2026-06-30T18:10:59.241093Z	Executing user command: npm install
+2026-06-30T18:12:10.671812Z	npm error Exit handler never called!
+2026-06-30T18:12:10.672317Z	npm error This is an error with npm itself. Please report this error at:
+2026-06-30T18:12:10.672479Z	npm error   <https://github.com/npm/cli/issues>
+2026-06-30T18:12:10.672582Z	npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-30T18_10_59_476Z-debug-0.log
+2026-06-30T18:12:10.689371Z	Finished
+2026-06-30T18:12:11.316098Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-06-30T18:12:11.316489Z	
+2026-06-30T18:12:11.316885Z	Found wrangler.toml file. Reading build configuration...
+2026-06-30T18:12:11.322657Z	pages_build_output_dir: app/public
+2026-06-30T18:12:11.322812Z	Build environment variables: (none found)
+2026-06-30T18:12:11.473724Z	Successfully read the Wrangler configuration file.
+2026-06-30T18:12:11.475111Z	Found Functions directory at /functions. Uploading.
+2026-06-30T18:12:11.480416Z	 ⛅️ wrangler 3.114.17
+2026-06-30T18:12:11.480737Z	-------------------
+2026-06-30T18:12:12.446068Z	[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 6 errors:[0m
+2026-06-30T18:12:12.446429Z	
+2026-06-30T18:12:12.446555Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "jose"[0m
+2026-06-30T18:12:12.4466Z	  
+2026-06-30T18:12:12.446633Z	      [[catchall]].js:4:35:
+2026-06-30T18:12:12.446674Z	  [37m      4 │ import { SignJWT, jwtVerify } from [32m"jose"[37m;
+2026-06-30T18:12:12.446709Z	          ╵                                    [32m~~~~~~[0m
+2026-06-30T18:12:12.446738Z	  
+2026-06-30T18:12:12.44677Z	    You can mark the path "jose" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.446802Z	  
+2026-06-30T18:12:12.44683Z	  
+2026-06-30T18:12:12.446864Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "bcryptjs"[0m
+2026-06-30T18:12:12.446906Z	  
+2026-06-30T18:12:12.446949Z	      [[catchall]].js:5:19:
+2026-06-30T18:12:12.44698Z	  [37m      5 │ import bcrypt from [32m"bcryptjs"[37m;
+2026-06-30T18:12:12.44701Z	          ╵                    [32m~~~~~~~~~~[0m
+2026-06-30T18:12:12.447049Z	  
+2026-06-30T18:12:12.447101Z	    You can mark the path "bcryptjs" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.448895Z	  
+2026-06-30T18:12:12.449139Z	  
+2026-06-30T18:12:12.449224Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "pdf-lib"[0m
+2026-06-30T18:12:12.449342Z	  
+2026-06-30T18:12:12.449562Z	      [[catchall]].js:6:48:
+2026-06-30T18:12:12.44965Z	  [37m      6 │ import { PDFDocument, rgb, StandardFonts } from [32m"pdf-lib"[37m;
+2026-06-30T18:12:12.449732Z	          ╵                                                 [32m~~~~~~~~~[0m
+2026-06-30T18:12:12.449818Z	  
+2026-06-30T18:12:12.449907Z	    You can mark the path "pdf-lib" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.449951Z	  
+2026-06-30T18:12:12.450108Z	  
+2026-06-30T18:12:12.450182Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "xlsx"[0m
+2026-06-30T18:12:12.450572Z	  
+2026-06-30T18:12:12.450643Z	      [[catchall]].js:7:22:
+2026-06-30T18:12:12.450682Z	  [37m      7 │ import * as XLSX from [32m"xlsx"[37m;
+2026-06-30T18:12:12.45073Z	          ╵                       [32m~~~~~~[0m
+2026-06-30T18:12:12.450803Z	  
+2026-06-30T18:12:12.450868Z	    You can mark the path "xlsx" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.451006Z	  
+2026-06-30T18:12:12.451284Z	  
+2026-06-30T18:12:12.451379Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "fflate"[0m
+2026-06-30T18:12:12.451947Z	  
+2026-06-30T18:12:12.452105Z	      [[catchall]].js:8:33:
+2026-06-30T18:12:12.452204Z	  [37m      8 │ import { strToU8, zipSync } from [32m"fflate"[37m;
+2026-06-30T18:12:12.452309Z	          ╵                                  [32m~~~~~~~~[0m
+2026-06-30T18:12:12.45238Z	  
+2026-06-30T18:12:12.452505Z	    You can mark the path "fflate" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.452584Z	  
+2026-06-30T18:12:12.452655Z	  
+2026-06-30T18:12:12.452724Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "@turf/turf"[0m
+2026-06-30T18:12:12.452931Z	  
+2026-06-30T18:12:12.453371Z	      [[catchall]].js:9:22:
+2026-06-30T18:12:12.453525Z	  [37m      9 │ import * as turf from [32m"@turf/turf"[37m;
+2026-06-30T18:12:12.453698Z	          ╵                       [32m~~~~~~~~~~~~[0m
+2026-06-30T18:12:12.453765Z	  
+2026-06-30T18:12:12.453909Z	    You can mark the path "@turf/turf" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.454021Z	  
+2026-06-30T18:12:12.454076Z	  
+2026-06-30T18:12:12.454128Z	
+2026-06-30T18:12:12.454159Z	
+2026-06-30T18:12:12.454203Z	
+2026-06-30T18:12:12.454697Z	[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 6 errors:[0m
+2026-06-30T18:12:12.4548Z	
+2026-06-30T18:12:12.454879Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "jose"[0m
+2026-06-30T18:12:12.454959Z	  
+2026-06-30T18:12:12.455034Z	      [[catchall]].js:4:35:
+2026-06-30T18:12:12.455325Z	  [37m      4 │ import { SignJWT, jwtVerify } from [32m"jose"[37m;
+2026-06-30T18:12:12.455414Z	          ╵                                    [32m~~~~~~[0m
+2026-06-30T18:12:12.455496Z	  
+2026-06-30T18:12:12.455625Z	    You can mark the path "jose" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.455702Z	  
+2026-06-30T18:12:12.455836Z	  
+2026-06-30T18:12:12.455911Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "bcryptjs"[0m
+2026-06-30T18:12:12.455978Z	  
+2026-06-30T18:12:12.456038Z	      [[catchall]].js:5:19:
+2026-06-30T18:12:12.456094Z	  [37m      5 │ import bcrypt from [32m"bcryptjs"[37m;
+2026-06-30T18:12:12.456152Z	          ╵                    [32m~~~~~~~~~~[0m
+2026-06-30T18:12:12.456228Z	  
+2026-06-30T18:12:12.456287Z	    You can mark the path "bcryptjs" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.456389Z	  
+2026-06-30T18:12:12.456462Z	  
+2026-06-30T18:12:12.456568Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "pdf-lib"[0m
+2026-06-30T18:12:12.456643Z	  
+2026-06-30T18:12:12.456715Z	      [[catchall]].js:6:48:
+2026-06-30T18:12:12.456776Z	  [37m      6 │ import { PDFDocument, rgb, StandardFonts } from [32m"pdf-lib"[37m;
+2026-06-30T18:12:12.45687Z	          ╵                                                 [32m~~~~~~~~~[0m
+2026-06-30T18:12:12.457085Z	  
+2026-06-30T18:12:12.457229Z	    You can mark the path "pdf-lib" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.457307Z	  
+2026-06-30T18:12:12.457427Z	  
+2026-06-30T18:12:12.457569Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "xlsx"[0m
+2026-06-30T18:12:12.457665Z	  
+2026-06-30T18:12:12.457821Z	      [[catchall]].js:7:22:
+2026-06-30T18:12:12.457925Z	  [37m      7 │ import * as XLSX from [32m"xlsx"[37m;
+2026-06-30T18:12:12.458018Z	          ╵                       [32m~~~~~~[0m
+2026-06-30T18:12:12.458078Z	  
+2026-06-30T18:12:12.458137Z	    You can mark the path "xlsx" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.458199Z	  
+2026-06-30T18:12:12.458351Z	  
+2026-06-30T18:12:12.458911Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "fflate"[0m
+2026-06-30T18:12:12.459004Z	  
+2026-06-30T18:12:12.459161Z	      [[catchall]].js:8:33:
+2026-06-30T18:12:12.459242Z	  [37m      8 │ import { strToU8, zipSync } from [32m"fflate"[37m;
+2026-06-30T18:12:12.459325Z	          ╵                                  [32m~~~~~~~~[0m
+2026-06-30T18:12:12.45939Z	  
+2026-06-30T18:12:12.45954Z	    You can mark the path "fflate" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.459649Z	  
+2026-06-30T18:12:12.459767Z	  
+2026-06-30T18:12:12.459885Z	  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "@turf/turf"[0m
+2026-06-30T18:12:12.460165Z	  
+2026-06-30T18:12:12.460588Z	      [[catchall]].js:9:22:
+2026-06-30T18:12:12.460868Z	  [37m      9 │ import * as turf from [32m"@turf/turf"[37m;
+2026-06-30T18:12:12.461114Z	          ╵                       [32m~~~~~~~~~~~~[0m
+2026-06-30T18:12:12.461209Z	  
+2026-06-30T18:12:12.461298Z	    You can mark the path "@turf/turf" as external to exclude it from the bundle, which will remove this error.
+2026-06-30T18:12:12.461385Z	  
+2026-06-30T18:12:12.461477Z	  
+2026-06-30T18:12:12.461546Z	
+2026-06-30T18:12:12.461654Z	
+2026-06-30T18:12:12.465828Z	🪵  Logs were written to "/root/.config/.wrangler/logs/wrangler-2026-06-30_18-12-11_949.log"
+2026-06-30T18:12:12.55436Z	Failed building Pages Functions.
+2026-06-30T18:12:13.204813Z	Failed: generating Pages Functions failed. Check the logs above for more information. If this continues for an unknown reason, contact support: https://cfl.re/3WgEyrH
