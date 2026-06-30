@@ -1,0 +1,137 @@
+Socrates.resende87@gmail.com's Account
+Account home
+
+Recents
+
+Domains
+Observe
+
+Investigate
+
+Analytics
+Build
+
+Compute
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Run
+VPC
+
+Email Service
+Workers plans
+Flagship
+
+AI
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Manage account
+
+← brigada-ouro
+Production
+Deployment details
+Deployment ID: dd6f720b-e96d-4025-9c60-5bef0bb591ff
+
+Deployment URL: https://dd6f720b.brigada-ouro.pages.dev
+
+Repository:
+caosrc/Combateob
+Branch:
+main
+512f0dc
+Remove wrangler from project dependencies to fix build failures Removes `wrangler` from `devDependencies` in `package.json` and regenerates `package-lock.json` to resolve an npm build error caused by a hanging `postinstall` script in the `wrangler` package during Cloudflare Pages builds. Replit-Commit-Author: Agent Replit-Commit-Session-Id: 23d80e4a-0950-4fc8-8980-32d9e4dd2613 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 0f8aa0b3-719a-43cc-93a7-6185ac759fdc Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/4afee405-81fe-469f-812e-7ad9d4d5bf41/23d80e4a-0950-4fc8-8980-32d9e4dd2613/ae244ib Replit-Helium-Checkpoint-Created: true
+Status:
+failure
+3:06PM June 30, 2026
+Duration:
+1m 26s
+›
+Build settings
+1
+Build log
+Functions
+Redirects
+Headers
+Build log
+initialize
+7s
+clone repo
+2s
+build
+1m 17s
+deploy
+—
+2026-06-30T18:05:34.810241Z	Cloning repository...
+2026-06-30T18:05:36.187983Z	From https://github.com/caosrc/Combateob
+2026-06-30T18:05:36.188349Z	 * branch            512f0dc38af0963491c25265f21a17f618ab8dd3 -> FETCH_HEAD
+2026-06-30T18:05:36.188467Z	
+2026-06-30T18:05:36.228045Z	HEAD is now at 512f0dc Remove wrangler from project dependencies to fix build failures
+2026-06-30T18:05:36.229708Z	
+2026-06-30T18:05:36.293369Z	
+2026-06-30T18:05:36.293898Z	Using v2 root directory strategy
+2026-06-30T18:05:36.313796Z	Success: Finished cloning repository files
+2026-06-30T18:05:38.850985Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-06-30T18:05:38.85171Z	
+2026-06-30T18:05:38.852061Z	Found wrangler.toml file. Reading build configuration...
+2026-06-30T18:05:38.859874Z	pages_build_output_dir: app/public
+2026-06-30T18:05:38.860321Z	Build environment variables: (none found)
+2026-06-30T18:05:39.121703Z	Successfully read the Wrangler configuration file.
+2026-06-30T18:05:39.692995Z	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+2026-06-30T18:05:39.693589Z	Installing project dependencies: npm clean-install --progress=false
+2026-06-30T18:06:52.850673Z	npm error Exit handler never called!
+2026-06-30T18:06:52.851394Z	npm error This is an error with npm itself. Please report this error at:
+2026-06-30T18:06:52.85162Z	npm error   <https://github.com/npm/cli/issues>
+2026-06-30T18:06:52.851717Z	npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-30T18_05_40_993Z-debug-0.log
+2026-06-30T18:06:52.920289Z	Error: Exit with error code: 1
+2026-06-30T18:06:52.920907Z	    at ChildProcess.<anonymous> (/snapshot/dist/run-build.js)
+2026-06-30T18:06:52.921032Z	    at Object.onceWrapper (node:events:652:26)
+2026-06-30T18:06:52.921088Z	    at ChildProcess.emit (node:events:537:28)
+2026-06-30T18:06:52.921133Z	    at ChildProcess._handle.onexit (node:internal/child_process:291:12)
+2026-06-30T18:06:52.930242Z	Failed: build command exited with code: 1
+2026-06-30T18:06:53.752517Z	Failed: error occurred while running build command
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2026 Cloudflare, Inc.
+Need more help?
+
+Good afternoon.
+What are we doing today?
+
+
+Durable Objects
+Explain how they work
+
+Transfer a domain
+Walk me through the process
+
+Encrypted Client Hello
+Enable ECH for my zone
+
+Bind R2 to a Worker
+Connect object storage
+
+Orange vs Gray Cloud
+What is the difference?
+Chats are recorded to improve the service and are processed in accordance with our Privacy Policy.
+
+What can we help you with?
