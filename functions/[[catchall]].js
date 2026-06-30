@@ -402,6 +402,11 @@ export async function onRequest(context) {
     return context.next();
   }
 
+  // GET /login deve servir o arquivo estático login.html (navegação do browser)
+  if (path === "/login" && method === "GET") {
+    return context.next();
+  }
+
   // CORS preflight
   if (method === "OPTIONS") {
     return new Response(null, { headers: {
