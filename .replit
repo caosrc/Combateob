@@ -42,5 +42,3 @@ run = ["bash", "-c", "cd app && npm install --production && node server.js"]
 
 [userenv.shared]
 NODE_ENV = "production"
-JWT_SECRET = "6d6b35895d99fe37c4198bee54f55478848a0908235742fde5d7d72fb8649eb3d8b74e291c00c02c7ebc1096a799d9d1"
-CF_ACCOUNT_ID = "eabd9971defcda96c2d754fa51d20d4f"
