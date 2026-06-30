@@ -1,10 +1,20 @@
-import { SignJWT, jwtVerify } from "jose";
-import bcrypt from "bcryptjs";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import * as XLSX from "xlsx";
-import { strToU8, zipSync } from "fflate";
-import * as turf from "@turf/turf";
+import { SignJWT, jwtVerify } from 'jose';
+import bcrypt from 'bcryptjs';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import * as XLSX from 'xlsx';
+import { strToU8, zipSync } from 'fflate';
+import * as turf from '@turf/turf';
+// Cloudflare Pages Function – Brigada Ouro
+// Substitui o Express + SQLite pelo Cloudflare D1 + Pages Functions
 
+
+
+
+
+
+
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 const parseData = (raw) => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
 const parsePoly = (raw) => {
   try {
@@ -20,6 +30,7 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
 });
 
+// ─── JWT ───────────────────────────────────────────────────────────────────────
 async function signJWT(payload, secret) {
   const key = new TextEncoder().encode(secret);
   return new SignJWT(payload).setProtectedHeader({ alg: "HS256" }).sign(key);
@@ -38,6 +49,7 @@ async function getAuth(request, env) {
   catch { return null; }
 }
 
+// ─── Init DB ──────────────────────────────────────────────────────────────────
 async function initDB(DB) {
   await DB.batch([
     DB.prepare(`CREATE TABLE IF NOT EXISTS users (
@@ -60,6 +72,7 @@ async function initDB(DB) {
   }
 }
 
+// ─── PDF com pdf-lib ──────────────────────────────────────────────────────────
 async function gerarPDF(row) {
   const pdfDoc = await PDFDocument.create();
   const hel = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -80,8 +93,11 @@ async function gerarPDF(row) {
   const LPINK = rgb(1, 0.867, 0.867);
 
   const d = parseData(row.data);
+
+  // ── Página 1 ──
   let page = pdfDoc.addPage([A4W, A4H]);
 
+  // Cabeçalho vermelho
   page.drawRectangle({ x: 0, y: A4H - 90, width: A4W, height: 90, color: RED });
   page.drawRectangle({ x: 0, y: A4H - 96, width: A4W, height: 6, color: DRED });
 
@@ -92,6 +108,7 @@ async function gerarPDF(row) {
   const t3 = "Brigada de Prevenção e Combate a Incêndios Florestais";
   page.drawText(t3, { x: A4W / 2 - hel.widthOfTextAtSize(t3, 8) / 2, y: A4H - 68, size: 8, font: hel, color: LPINK });
 
+  // Faixa de identificação
   page.drawRectangle({ x: 0, y: A4H - 132, width: A4W, height: 36, color: BGLT });
   page.drawRectangle({ x: 0, y: A4H - 132, width: A4W, height: 0.5, color: LINE });
   page.drawRectangle({ x: 0, y: A4H - 132 - 0.5, width: A4W, height: 0.5, color: LINE });
@@ -101,17 +118,23 @@ async function gerarPDF(row) {
 
   page.drawText("Nº DO REGISTRO",       { x: ML,       y: idY + 8, size: 7, font: hel,  color: LIGHT });
   page.drawText(`#${String(row.id).padStart(4,"0")}`, { x: ML, y: idY - 5, size: 13, font: helB, color: RED });
+
   page.drawText("EQUIPE RESPONSÁVEL",   { x: ML + 90,  y: idY + 8, size: 7, font: hel,  color: LIGHT });
   page.drawText(d.nomeEquipe || row.team || "–", { x: ML + 90, y: idY - 4, size: 9, font: helB, color: DARK });
+
   page.drawText("DATA DO REGISTRO",     { x: ML + 240, y: idY + 8, size: 7, font: hel,  color: LIGHT });
   page.drawText(new Date(row.createdAt).toLocaleString("pt-BR"), { x: ML + 240, y: idY - 4, size: 8, font: helB, color: DARK });
+
   page.drawText("ÁREA ATINGIDA",        { x: ML + 430, y: idY + 8, size: 7, font: hel,  color: LIGHT });
   page.drawText(areaVal,                { x: ML + 430, y: idY - 4, size: 11, font: helB, color: RED });
 
-  let curY = 148;
+  // ── Seções ──
+  let curY = 148; // top-based
+
   const drawLine = (topY) => {
     page.drawRectangle({ x: ML, y: A4H - topY, width: PW, height: 0.5, color: LINE });
   };
+
   const wrapText = (text, maxW, font, size) => {
     const words = String(text).split(" ");
     const lines = []; let cur = "";
@@ -123,31 +146,41 @@ async function gerarPDF(row) {
     if (cur) lines.push(cur);
     return lines.length ? lines : ["–"];
   };
+
   const section = (titulo, campos) => {
+    // Cabeçalho da seção
     page.drawRectangle({ x: ML, y: A4H - curY - 18, width: PW, height: 18, color: SECBG });
     page.drawRectangle({ x: ML, y: A4H - curY - 18, width: 4,  height: 18, color: RED });
     page.drawText(titulo.toUpperCase(), { x: ML + 10, y: A4H - curY - 13, size: 9, font: helB, color: RED });
     curY += 22;
+
     const colW = PW / 2;
     let col = 0;
     let rowStartH = 0;
+
     campos.forEach((c, i) => {
       const wide = c.wide || false;
       const x = ML + (col * colW);
       const w = wide ? PW : colW - 10;
+
       page.drawText(c.label.toUpperCase(), { x, y: A4H - curY - 10, size: 7, font: hel, color: LIGHT });
+
       const lines = wrapText(c.value, w, hel, 9.5);
       lines.forEach((line, li) => {
         page.drawText(line, { x, y: A4H - curY - 22 - li * 13, size: 9.5, font: hel, color: DARK });
       });
+
       const fieldH = 14 + lines.length * 13 + 2;
       rowStartH = Math.max(rowStartH, fieldH);
+
       if (wide || col === 1 || i === campos.length - 1) {
         drawLine(curY + rowStartH + 4);
         curY += rowStartH + 8;
         col = 0;
         rowStartH = 0;
-      } else { col = 1; }
+      } else {
+        col = 1;
+      }
     });
     curY += 6;
   };
@@ -157,6 +190,7 @@ async function gerarPDF(row) {
     { label: "Nome da Equipe",         value: val(d.nomeEquipe) },
     { label: "Brigadistas da Equipe",  value: val(d.brigadistas), wide: true },
   ]);
+
   section("2. Identificação do Local da Ocorrência", [
     { label: "Município",                         value: val(d.municipio) },
     { label: "Coordenadas GPS",                   value: val(d.coordStr) },
@@ -164,16 +198,19 @@ async function gerarPDF(row) {
     { label: "Localização (Entorno/Interno)",      value: val(d.local) },
     { label: "Unidade de Conservação (UC)",        value: d.uc ? (d.uc === "sim" ? "Sim" : "Não") : "–" },
   ]);
+
   section("3. Dados da Detecção do Incêndio", [
     { label: "Data de Detecção",    value: fmtDate(d.dataDeteccao) },
     { label: "Hora de Detecção",    value: val(d.horaDeteccao) },
     { label: "Forma de Detecção",   value: val(d.formaDeteccao), wide: true },
   ]);
+
   section("4. Dados do Comunicante / Contato", [
     { label: "Nome do Contato",   value: val(d.nomeContato) },
     { label: "Orgão / Função",    value: val(d.orgaoContato) },
     { label: "Telefone",          value: val(d.telefoneContato), wide: true },
   ]);
+
   section("5. Dados do Combate", [
     { label: "Início do Combate",           value: fmtDateTime(d.inicioData,   d.inicioHora) },
     { label: "Incêndio Debelado em",        value: fmtDateTime(d.debeladoData, d.debeladoHora) },
@@ -183,19 +220,23 @@ async function gerarPDF(row) {
     { label: "Causa Provável do Incêndio",  value: val(d.causa) },
     { label: "Descrição da Ocorrência",     value: val(d.descricao), wide: true },
   ]);
+
   section("6. Área Atingida e Localização Espacial", [
     { label: "Área Total Atingida (calculada)", value: row.area ? `${row.area.toFixed(4)} hectares` : "–" },
     { label: "Polígono Registrado", value: (() => { try { const p = parsePoly(row.polygon); return p.length >= 3 ? `Sim – ${p.length} vértices` : "Não registrado"; } catch { return "–"; } })() },
   ]);
 
+  // ── Rodapé ──
   const footTop = A4H - 90;
   page.drawRectangle({ x: 0, y: footTop - 90, width: A4W, height: 90, color: BGLT });
   page.drawRectangle({ x: 0, y: footTop,       width: A4W, height: 0.5, color: LINE });
+
   const footLabel = `Documento gerado automaticamente pelo Sistema Brigada Ouro  ·  Registro #${String(row.id).padStart(4,"0")}  ·  ${new Date().toLocaleString("pt-BR")}`;
   page.drawText(footLabel, {
     x: A4W / 2 - hel.widthOfTextAtSize(footLabel, 7) / 2, y: footTop - 12, size: 7, font: hel, color: LIGHT
   });
 
+  // Assinatura digital
   if (row.signature) {
     try {
       const raw = row.signature.replace(/^data:image\/\w+;base64,/, "");
@@ -209,12 +250,16 @@ async function gerarPDF(row) {
     } catch (_) {}
   }
 
+  // Linha de assinatura
   page.drawLine({ start: { x: A4W / 2 - 100, y: footTop - 63 }, end: { x: A4W / 2 + 100, y: footTop - 63 }, thickness: 0.5, color: LINE });
+
   const rl = "Brigadista – Responsável pelo Registro";
   page.drawText(rl, { x: A4W / 2 - hel.widthOfTextAtSize(rl, 7) / 2, y: footTop - 73, size: 7, font: hel, color: LIGHT });
+
   const bn = val(d.brigadista);
   page.drawText(bn, { x: A4W / 2 - helB.widthOfTextAtSize(bn, 8) / 2, y: footTop - 83, size: 8, font: helB, color: DARK });
 
+  // ── Páginas de Fotos ──
   const photos = (() => { try { return JSON.parse(row.photos || "[]"); } catch { return []; } })();
   if (photos.length > 0) {
     const imgW = 242, imgH = 340;
@@ -231,6 +276,7 @@ async function gerarPDF(row) {
       pg.drawText(rl2, { x: A4W / 2 - hel.widthOfTextAtSize(rl2, 7) / 2, y: A4H - 20, size: 7, font: hel, color: PINK });
       const tl2 = `Incêndio #${String(row.id).padStart(4,"0")} – Brigada Ouro`;
       pg.drawText(tl2, { x: A4W / 2 - helB.widthOfTextAtSize(tl2, 14) / 2, y: A4H - 40, size: 14, font: helB, color: WHITE });
+
       const slice = photos.slice(pi, pi + 4);
       for (let idx = 0; idx < slice.length; idx++) {
         try {
@@ -250,10 +296,12 @@ async function gerarPDF(row) {
   return await pdfDoc.save();
 }
 
+// ─── Excel ────────────────────────────────────────────────────────────────────
 function gerarExcel(rows, now) {
   const gerado = now.toLocaleString("pt-BR");
   const fmtD = (d) => { if (!d) return ""; const [y, m, dd] = d.split("-"); return dd ? `${dd}/${m}/${y}` : d; };
   const uc2 = (v) => v === "sim" ? "Sim" : v === "nao" ? "Não" : v || "";
+
   const headers = [
     "Nº Registro","Data/Hora Registro","Equipe",
     "Brigadista Responsável","Nome da Equipe","Brigadistas da Equipe",
@@ -267,6 +315,7 @@ function gerarExcel(rows, now) {
     "Houve Alimentação","Causa do Incêndio",
     "Descrição da Ocorrência","Área Atingida (ha)","Qtd. Fotos"
   ];
+
   const dataRows = rows.map(r => {
     const d = parseData(r.data);
     const photos = (() => { try { return JSON.parse(r.photos || "[]"); } catch { return []; } })();
@@ -285,16 +334,21 @@ function gerarExcel(rows, now) {
       r.area ? parseFloat(r.area.toFixed(4)) : "", photos.length
     ];
   });
+
   const ws1 = XLSX.utils.aoa_to_sheet([
     [`RELATÓRIO DE INCÊNDIOS FLORESTAIS – Brigada Ouro`],
     [`Gerado em: ${gerado}   |   Total de registros: ${rows.length}`],
-    [], headers, ...dataRows
+    [],
+    headers,
+    ...dataRows
   ]);
   ws1["!cols"] = [12,22,20,28,25,50,20,30,12,12,30,22,8,14,12,30,25,22,16,18,14,18,14,30,30,16,25,50,14,10].map(w => ({ wch: w }));
+
   const totalArea = rows.reduce((a, b) => a + (b.area || 0), 0);
   const thisMonth = rows.filter(r => { const d = new Date(r.createdAt); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
   const causas = {};
   rows.forEach(r => { const d = parseData(r.data); const c = d.causa || "Não informada"; causas[c] = (causas[c] || 0) + 1; });
+
   const ws2 = XLSX.utils.aoa_to_sheet([
     ["RESUMO ESTATÍSTICO"], [`Gerado em: ${gerado}`], [],
     ["INDICADOR","VALOR"],
@@ -306,12 +360,14 @@ function gerarExcel(rows, now) {
     ...Object.entries(causas).map(([k, v]) => [k, v])
   ]);
   ws2["!cols"] = [{ wch: 40 }, { wch: 20 }];
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, "Registros Completos");
   XLSX.utils.book_append_sheet(wb, ws2, "Resumo Estatístico");
   return XLSX.write(wb, { type: "array", bookType: "xlsx" });
 }
 
+// ─── KMZ ─────────────────────────────────────────────────────────────────────
 function gerarKMZ(rows) {
   let kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -319,6 +375,7 @@ function gerarKMZ(rows) {
   <name>Brigada Ouro – Registros</name>
   <Style id="poly"><LineStyle><color>ff0000ff</color><width>3</width></LineStyle><PolyStyle><color>440000ff</color></PolyStyle></Style>
   <Style id="pt"><IconStyle><color>ff0000ff</color><scale>1.2</scale><Icon><href>http://maps.google.com/mapfiles/ms/icons/red-dot.png</href></Icon></IconStyle></Style>`;
+
   rows.forEach(r => {
     const d = parseData(r.data);
     const poly = parsePoly(r.polygon);
@@ -332,21 +389,38 @@ function gerarKMZ(rows) {
     }
     kml += `\n  </Placemark>`;
   });
+
   kml += `\n</Document>\n</kml>`;
   const kmzBytes = zipSync({ "doc.kml": strToU8(kml) });
   return kmzBytes;
 }
 
-async function handleRequest(request, env) {
+// ─── Handler principal ────────────────────────────────────────────────────────
+export default {
+  async fetch(request, env) {
+    const context = { request, env, next: () => env.ASSETS.fetch(request) };
+    return _onRequest(context);
+  }
+};
+
+async function _onRequest(context) {
+  const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
 
+  // Só intercepta rotas de API
   const apiPrefixes = ["/login", "/fire", "/dashboard", "/sync", "/report", "/export"];
   if (!apiPrefixes.some(p => path === p || path.startsWith(p + "/"))) {
-    return null; // pass through to static assets
+    return context.next();
   }
 
+  // GET /login deve servir o arquivo estático login.html (navegação do browser)
+  if (path === "/login" && method === "GET") {
+    return context.next();
+  }
+
+  // CORS preflight
   if (method === "OPTIONS") {
     return new Response(null, { headers: {
       "Access-Control-Allow-Origin": "*",
@@ -355,8 +429,10 @@ async function handleRequest(request, env) {
     }});
   }
 
+  // Init DB (idempotente)
   try { await initDB(env.DB); } catch (e) { console.error("initDB:", e); }
 
+  // ── POST /login ──
   if (path === "/login" && method === "POST") {
     try {
       const { username, password } = await request.json();
@@ -368,6 +444,7 @@ async function handleRequest(request, env) {
     } catch (e) { return json({ error: e.message }, 500); }
   }
 
+  // ── POST /fire ──
   if (path === "/fire" && method === "POST") {
     const user = await getAuth(request, env);
     if (!user) return json({ error: "Token required" }, 401);
@@ -380,6 +457,7 @@ async function handleRequest(request, env) {
         catch (e) { return json({ error: "Erro na área: " + e.message }); }
       }
       if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
+
       const result = await env.DB.prepare(
         "INSERT INTO fires (data,area,team,polygon,photos,signature,createdAt) VALUES (?,?,?,?,?,?,?)"
       ).bind(
@@ -387,10 +465,12 @@ async function handleRequest(request, env) {
         JSON.stringify(polygon || []), JSON.stringify(photos || []),
         signature || null, new Date().toISOString()
       ).run();
+
       return json({ ok: true, area, id: result.meta.last_row_id });
     } catch (e) { return json({ error: e.message }, 500); }
   }
 
+  // ── GET /dashboard ──
   if (path === "/dashboard" && method === "GET") {
     try {
       const { results } = await env.DB.prepare("SELECT * FROM fires ORDER BY createdAt DESC").all();
@@ -400,6 +480,7 @@ async function handleRequest(request, env) {
     } catch (e) { return json({ error: e.message }, 500); }
   }
 
+  // ── GET /report/:id ──
   const rptMatch = path.match(/^\/report\/(\d+)$/);
   if (rptMatch && method === "GET") {
     try {
@@ -414,6 +495,7 @@ async function handleRequest(request, env) {
     } catch (e) { return new Response("Erro: " + e.message, { status: 500 }); }
   }
 
+  // ── GET /export/excel ──
   if (path === "/export/excel" && method === "GET") {
     const user = await getAuth(request, env);
     if (!user) return json({ error: "Token required" }, 401);
@@ -428,6 +510,7 @@ async function handleRequest(request, env) {
     } catch (e) { return json({ error: "Erro Excel: " + e.message }, 500); }
   }
 
+  // ── GET /export/kmz ──
   if (path === "/export/kmz" && method === "GET") {
     const user = await getAuth(request, env);
     if (!user) return json({ error: "Token required" }, 401);
@@ -442,6 +525,7 @@ async function handleRequest(request, env) {
     } catch (e) { return json({ error: "Erro KMZ: " + e.message }, 500); }
   }
 
+  // ── POST /sync ──
   if (path === "/sync" && method === "POST") {
     const user = await getAuth(request, env);
     if (!user) return json({ error: "Token required" }, 401);
@@ -471,12 +555,3 @@ async function handleRequest(request, env) {
 
   return new Response("Not found", { status: 404 });
 }
-
-export default {
-  async fetch(request, env, ctx) {
-    const apiResponse = await handleRequest(request, env);
-    if (apiResponse !== null) return apiResponse;
-    // For non-API routes, return 404 (Cloudflare Pages serves static files before this worker)
-    return new Response("Not found", { status: 404 });
-  }
-};
