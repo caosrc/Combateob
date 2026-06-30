@@ -18,8 +18,5 @@
     "jose": "^6.0.10",
     "pdf-lib": "^1.17.1",
     "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "wrangler": "^4.0.0"
   }
 }
