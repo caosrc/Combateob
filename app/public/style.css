@@ -602,13 +602,34 @@ html, body {
 
 /* ===================== MAP (aba) ===================== */
 #tab-mapa {
-  /* position: fixed herdado de .tab-content — não sobrescrever com relative */
   overflow: hidden;
 }
 #map {
   flex: 1;
   width: 100%;
   min-height: 0;
+}
+
+/* Oculta a barra de ferramentas do leaflet-draw (usamos botão customizado) */
+.leaflet-draw { display: none !important; }
+
+/* Barra de confirmação de polígono */
+#map-draw-confirm {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  z-index: 1000;
+  padding: 10px 12px;
+  background: #fff;
+  border-top: 2px solid #e0e0e0;
+  box-shadow: 0 -3px 12px rgba(0,0,0,0.13);
+  display: none;
+  gap: 10px;
+}
+.btn-desenhar-ativo {
+  background: #c0392b !important;
+  color: #fff !important;
+  border-color: #c0392b !important;
 }
 .map-controls {
   position: absolute;
@@ -737,20 +758,25 @@ html, body {
 
 .fires-table th {
   background: #fff0f0;
-  padding: 10px 12px;
+  padding: 6px 7px;
   text-align: left;
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   color: var(--red);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .fires-table td {
-  padding: 10px 12px;
-  font-size: 12px;
+  padding: 6px 7px;
+  font-size: 11px;
   border-top: 1px solid #f5f5f5;
   color: var(--dark-text);
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fires-table tr:hover td { background: #fafafa; }
@@ -839,12 +865,13 @@ html, body {
 
 /* ===================== SOBRE ===================== */
 .sobre-card {
-  margin: 16px 0 8px;
-  border-radius: 14px;
+  border-radius: 14px 14px 0 0;
   overflow: hidden;
   border: 1px solid #ffe0a0;
+  border-bottom: none;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+  flex-shrink: 0;
 }
 .sobre-header {
   display: flex;

@@ -58,8 +58,11 @@ db.serialize(() => {
     polygon TEXT,
     photos TEXT,
     signature TEXT,
+    mapSnapshot TEXT,
     createdAt TEXT
   )`);
+  // Adiciona coluna se DB já existia sem ela
+  db.run(`ALTER TABLE fires ADD COLUMN mapSnapshot TEXT`, () => {});
   db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
     if (row && row.count === 0) {
       db.run("INSERT INTO users (username, password, team) VALUES (?, ?, ?)",
@@ -105,7 +108,7 @@ app.post("/login", (req, res) => {
 
 // ===== REGISTRAR INCÊNDIO =====
 app.post("/fire", auth, (req, res) => {
-  const { data, polygon, signature, photos } = req.body;
+  const { data, polygon, signature, photos, mapSnapshot } = req.body;
   let area = 0;
   if (polygon && polygon.length >= 3) {
     try {
@@ -116,8 +119,8 @@ app.post("/fire", auth, (req, res) => {
   if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
 
   db.run(
-    "INSERT INTO fires (data, area, team, polygon, signature, photos, createdAt) VALUES (?,?,?,?,?,?,?)",
-    [JSON.stringify(data || {}), area, req.user.team, JSON.stringify(polygon || []), signature || null, JSON.stringify(photos || []), new Date().toISOString()],
+    "INSERT INTO fires (data, area, team, polygon, signature, photos, mapSnapshot, createdAt) VALUES (?,?,?,?,?,?,?,?)",
+    [JSON.stringify(data || {}), area, req.user.team, JSON.stringify(polygon || []), signature || null, JSON.stringify(photos || []), mapSnapshot || null, new Date().toISOString()],
     function(err) {
       if (err) return res.json({ error: err.message });
       res.json({ ok: true, area, id: this.lastID });
@@ -304,6 +307,26 @@ app.get("/report/:id", (req, res) => {
     doc.fontSize(8).fillColor(DARK).font("Helvetica-Bold")
       .text(val(d.brigadista), ML, footerY + 75, { width: PW, align: "center" });
 
+    // ── PÁGINA DO MAPA (snapshot) ──
+    if (row.mapSnapshot) {
+      try {
+        const snapBuf = Buffer.from(row.mapSnapshot.replace(/^data:image\/\w+;base64,/, ""), "base64");
+        doc.addPage({ size: "A4", margin: 0 });
+        doc.rect(0, 0, 595, 58).fill(RED);
+        doc.fontSize(7).fillColor("#ffcccc").font("Helvetica")
+          .text("MAPA DA ÁREA QUEIMADA", ML, 14, { width: PW, align: "center" });
+        doc.fontSize(14).fillColor("#ffffff").font("Helvetica-Bold")
+          .text(`Incêndio #${String(row.id).padStart(4,"0")} – Brigada Ouro`, ML, 28, { width: PW, align: "center" });
+        const mW = 500, mH = 375;
+        const mX = ML + (PW - mW) / 2;
+        doc.image(snapBuf, mX, 75, { width: mW, height: mH, fit: [mW, mH] });
+        const areaText = row.area ? `Área: ${row.area.toFixed(4)} ha` : "";
+        const munText = d.municipio ? `Município: ${d.municipio}` : "";
+        doc.fontSize(10).fillColor(DARK).font("Helvetica-Bold")
+          .text([areaText, munText].filter(Boolean).join("   •   "), ML, 75 + mH + 12, { width: PW, align: "center" });
+      } catch (_) {}
+    }
+
     // ── PÁGINAS DE FOTOS ──
     const photoList = (() => { try { return JSON.parse(row.photos || "[]"); } catch { return []; } })();
     if (photoList.length > 0) {
@@ -368,6 +391,7 @@ app.get("/export/excel", auth, async (req, res) => {
 
     ws1.addRow([]);
 
+    const MAX_PHOTOS_COLS = 8;
     const headers = [
       "Nº Registro", "Data/Hora Registro", "Equipe",
       "Brigadista Responsável", "Nome da Equipe", "Brigadistas da Equipe",
@@ -379,26 +403,34 @@ app.get("/export/excel", auth, async (req, res) => {
       "Incêndio Debelado – Data", "Debelado – Hora",
       "Pessoal Mobilizado", "Veículos Mobilizados",
       "Houve Alimentação", "Causa do Incêndio",
-      "Descrição da Ocorrência", "Área Atingida (ha)", "Qtd. Fotos"
+      "Descrição da Ocorrência", "Área Atingida (ha)", "Qtd. Fotos",
+      ...Array.from({ length: MAX_PHOTOS_COLS }, (_, i) => `Foto ${i + 1}`)
     ];
+    const thinBorder = { style: "thin", color: { argb: "FFD0D0D0" } };
+    const borderAll = { top: thinBorder, left: thinBorder, bottom: thinBorder, right: thinBorder };
+
     const headerRow = ws1.addRow(headers);
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC0392B" } };
       cell.alignment = { vertical: "middle", wrapText: true };
+      cell.border = borderAll;
     });
     ws1.views = [{ state: "frozen", ySplit: 4 }];
 
     const colWidths = [
       12, 22, 20, 28, 25, 50, 20, 30, 12, 12,
       30, 22, 8, 14, 12, 30, 25, 22, 16, 18,
-      14, 18, 14, 30, 30, 16, 25, 50, 14, 10
+      14, 18, 14, 30, 30, 16, 25, 50, 14, 8,
+      ...Array(MAX_PHOTOS_COLS).fill(16)
     ];
     ws1.columns = headers.map((h, i) => ({ width: colWidths[i] || 15 }));
 
+    const IMG_W = 110, IMG_H = 82;
     rows.forEach((r, ri) => {
       const d = parseData(r.data);
       const photos = (() => { try { return JSON.parse(r.photos || "[]"); } catch { return []; } })();
+      const photoPlaceholders = Array(MAX_PHOTOS_COLS).fill("");
       const dataRow = ws1.addRow([
         `#${String(r.id).padStart(4, "0")}`,
         new Date(r.createdAt).toLocaleString("pt-BR"),
@@ -429,12 +461,30 @@ app.get("/export/excel", auth, async (req, res) => {
         d.causa || "",
         d.descricao || "",
         r.area ? parseFloat(r.area.toFixed(4)) : "",
-        photos.length
+        photos.length,
+        ...photoPlaceholders
       ]);
-      if (ri % 2 === 0) {
-        dataRow.eachCell(cell => {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF5F5" } };
-        });
+      const bgColor = ri % 2 === 0 ? "FFFFF5F5" : "FFFFFFFF";
+      dataRow.eachCell(cell => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
+        cell.border = borderAll;
+      });
+
+      // Imagens nas colunas de foto (30-37, 0-indexed)
+      if (photos.length > 0) {
+        dataRow.height = IMG_H + 4;
+        const rowIdx = dataRow.number - 1; // 0-indexed for addImage
+        for (let pi = 0; pi < Math.min(photos.length, MAX_PHOTOS_COLS); pi++) {
+          try {
+            const b64 = photos[pi].replace(/^data:image\/\w+;base64,/, "");
+            const ext = photos[pi].startsWith("data:image/png") ? "png" : "jpeg";
+            const imgId = wb.addImage({ base64: b64, extension: ext });
+            ws1.addImage(imgId, {
+              tl: { col: 30 + pi, row: rowIdx },
+              ext: { width: IMG_W, height: IMG_H }
+            });
+          } catch (_) {}
+        }
       }
     });
 

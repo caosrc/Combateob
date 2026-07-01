@@ -37,7 +37,6 @@ function switchTab(tab) {
   }
   if (tab === "dashboard") {
     loadDashboard();
-    document.getElementById("sobre-section").style.display = "block";
   }
 }
 
@@ -129,11 +128,11 @@ function initMainMap() {
     return;
   }
   osmLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap", maxZoom: 19
+    attribution: "© OpenStreetMap", maxZoom: 19, crossOrigin: "anonymous"
   });
   satLayer = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { attribution: "© Esri World Imagery", maxZoom: 19 }
+    { attribution: "© Esri World Imagery", maxZoom: 19, crossOrigin: "anonymous" }
   );
   mainMap = L.map("map", { layers: [osmLayer] }).setView([-20.52, -43.69], 12);
   L.control.layers(
@@ -244,29 +243,25 @@ async function loadFiresOnMap() {
 
 // ==================== MAPA DE DESENHO (no mapa principal) ====================
 let currentPolygon = null;
-let drawMainControl = null;
 let drawMainItems = null;
 let modoDesenhoAtivo = false;
+let polygonHandler = null;
+let isDrawingPolygon = false;
+let mapSnapshotData = null;
 
 function abrirMapaDesenho() {
   switchTab("mapa");
   setTimeout(() => {
     mainMap.invalidateSize();
-    // Ativa camada satélite por padrão no modo de desenho
-    if (osmLayer && satLayer) {
-      if (mainMap.hasLayer(osmLayer)) {
-        mainMap.removeLayer(osmLayer);
-        mainMap.addLayer(satLayer);
-      }
+    if (osmLayer && satLayer && mainMap.hasLayer(osmLayer)) {
+      mainMap.removeLayer(osmLayer);
+      mainMap.addLayer(satLayer);
     }
-    // Centraliza no ponto GPS capturado, se disponível
     if (coordCapturada.lat) {
       mainMap.setView([coordCapturada.lat, coordCapturada.lng], 16);
     } else {
-      // Centraliza em Ouro Branco por padrão
       mainMap.setView([-20.52, -43.69], 13);
     }
-    // Ativa GPS do mapa se ainda não estiver ativo
     if (!gpsAtivo) toggleGPSMapa();
     iniciarDesenhoNoMapaPrincipal();
   }, 400);
@@ -279,21 +274,7 @@ function iniciarDesenhoNoMapaPrincipal() {
   if (!drawMainItems) {
     drawMainItems = new L.FeatureGroup();
     mainMap.addLayer(drawMainItems);
-  } else {
-    drawMainItems.clearLayers();
   }
-
-  if (drawMainControl) {
-    mainMap.removeControl(drawMainControl);
-  }
-  drawMainControl = new L.Control.Draw({
-    draw: {
-      polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: "#ff4444", weight: 2, fillOpacity: 0.2 } },
-      polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false
-    },
-    edit: { featureGroup: drawMainItems }
-  });
-  mainMap.addControl(drawMainControl);
 
   mainMap.off("draw:created").on("draw:created", function(e) {
     drawMainItems.clearLayers();
@@ -301,47 +282,126 @@ function iniciarDesenhoNoMapaPrincipal() {
     let latlngs = e.layer.getLatLngs()[0];
     if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
     currentPolygon = latlngs.map(p => [p.lng, p.lat]);
+    isDrawingPolygon = false;
+    atualizarBtnDesenhar();
   });
-  mainMap.off("draw:edited").on("draw:edited", function(e) {
-    e.layers.eachLayer(layer => {
-      let latlngs = layer.getLatLngs()[0];
-      if (latlngs[0] && Array.isArray(latlngs[0])) latlngs = latlngs[0];
-      currentPolygon = latlngs.map(p => [p.lng, p.lat]);
-    });
-  });
-  mainMap.off("draw:deleted").on("draw:deleted", function() { currentPolygon = null; });
 
-  // Mostra barra de confirmação
-  const bar = document.getElementById("map-draw-confirm");
-  bar.style.display = "flex";
-
-  // Inicia a ferramenta de polígono automaticamente
-  setTimeout(() => {
-    const btn = document.querySelector(".leaflet-draw-draw-polygon");
-    if (btn) btn.click();
-  }, 300);
+  document.getElementById("map-draw-confirm").style.display = "flex";
+  // Já inicia o modo de desenho automaticamente
+  setTimeout(() => toggleDesenharPoligono(), 200);
 }
 
-function confirmarDesenhoMapaPrincipal() {
+function toggleDesenharPoligono() {
+  if (!mainMap) return;
+  if (!drawMainItems) {
+    drawMainItems = new L.FeatureGroup();
+    mainMap.addLayer(drawMainItems);
+  }
+  if (isDrawingPolygon) {
+    if (polygonHandler) polygonHandler.disable();
+    drawMainItems.clearLayers();
+    currentPolygon = null;
+    isDrawingPolygon = false;
+  } else {
+    if (!polygonHandler) {
+      polygonHandler = new L.Draw.Polygon(mainMap, {
+        allowIntersection: false,
+        showArea: true,
+        shapeOptions: { color: "#ff4444", weight: 2, fillOpacity: 0.2 }
+      });
+    }
+    polygonHandler.enable();
+    isDrawingPolygon = true;
+  }
+  atualizarBtnDesenhar();
+}
+
+function atualizarBtnDesenhar() {
+  const btn = document.getElementById("btn-desenhar");
+  if (!btn) return;
+  if (isDrawingPolygon) {
+    btn.textContent = "✋ Parar Desenho";
+    btn.classList.add("btn-desenhar-ativo");
+  } else {
+    btn.textContent = "✏️ Desenhar Polígono";
+    btn.classList.remove("btn-desenhar-ativo");
+  }
+}
+
+async function captureMapSnapshot() {
+  try {
+    if (!mainMap || !currentPolygon || currentPolygon.length < 3) return null;
+    const latlngs = currentPolygon.map(([lng, lat]) => [lat, lng]);
+    mainMap.fitBounds(latlngs, { padding: [50, 50], animate: false });
+    await new Promise(r => setTimeout(r, 600));
+
+    const container = mainMap.getContainer();
+    const size = mainMap.getSize();
+    const canvas = document.createElement("canvas");
+    canvas.width = size.x;
+    canvas.height = size.y;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#aaa";
+    ctx.fillRect(0, 0, size.x, size.y);
+
+    const tiles = container.querySelectorAll(".leaflet-tile");
+    for (const img of tiles) {
+      if (!img.complete || !img.naturalWidth) continue;
+      const rect = img.getBoundingClientRect();
+      const cRect = container.getBoundingClientRect();
+      try { ctx.drawImage(img, rect.left - cRect.left, rect.top - cRect.top, rect.width, rect.height); } catch(_) {}
+    }
+
+    // Polígono vermelho
+    ctx.beginPath();
+    ctx.strokeStyle = "#ff2222";
+    ctx.fillStyle = "rgba(255, 50, 50, 0.25)";
+    ctx.lineWidth = 3;
+    currentPolygon.forEach(([lng, lat], i) => {
+      const pt = mainMap.latLngToContainerPoint([lat, lng]);
+      if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Vértices
+    ctx.fillStyle = "#ff2222";
+    currentPolygon.forEach(([lng, lat]) => {
+      const pt = mainMap.latLngToContainerPoint([lat, lng]);
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    return canvas.toDataURL("image/jpeg", 0.75);
+  } catch(e) {
+    console.warn("Snapshot falhou:", e);
+    return null;
+  }
+}
+
+async function confirmarDesenhoMapaPrincipal() {
   if (!currentPolygon || currentPolygon.length < 3) {
     alert("Desenhe um polígono no mapa antes de confirmar.");
     return;
   }
+  if (polygonHandler) { polygonHandler.disable(); }
+  isDrawingPolygon = false;
+
+  const btnConf = document.querySelector("#map-draw-confirm .btn-primary");
+  if (btnConf) { btnConf.textContent = "⏳ Capturando..."; btnConf.disabled = true; }
+  mapSnapshotData = await captureMapSnapshot();
+  if (btnConf) { btnConf.textContent = "✅ Confirmar Área"; btnConf.disabled = false; }
+
   encerrarModoDesenho();
   atualizarAreaDisplay();
   switchTab("registrar");
 }
 
-function cancelarDesenhoMapaPrincipal() {
-  encerrarModoDesenho();
-  switchTab("registrar");
-}
-
 function encerrarModoDesenho() {
-  if (drawMainControl) {
-    mainMap.removeControl(drawMainControl);
-    drawMainControl = null;
-  }
+  if (polygonHandler) { polygonHandler.disable(); polygonHandler = null; }
+  isDrawingPolygon = false;
   document.getElementById("map-draw-confirm").style.display = "none";
   modoDesenhoAtivo = false;
 }
@@ -545,14 +605,38 @@ async function comprimirFoto(file) {
     reader.onload = e => {
       const img = new Image();
       img.onload = () => {
-        const MAX = 1400;
+        const MAX = 1200;
         let w = img.width, h = img.height;
         if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
         if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.72));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Marca d'água: data/hora + GPS na parte inferior direita
+        const now = new Date();
+        const dateStr = now.toLocaleString("pt-BR");
+        let gpsStr = "";
+        if (coordCapturada.lat && coordCapturada.lng) {
+          gpsStr = `\n${decimalParaGMS(coordCapturada.lat, true)}  ${decimalParaGMS(coordCapturada.lng, false)}`;
+        }
+        const linhas = (dateStr + gpsStr).split("\n");
+        const fs = Math.max(11, Math.round(w / 45));
+        ctx.font = `bold ${fs}px Arial`;
+        const pad = 6;
+        const lh = fs * 1.35;
+        const boxH = linhas.length * lh + pad * 2;
+        const boxW = Math.max(...linhas.map(l => ctx.measureText(l).width)) + pad * 2;
+        const bx = w - boxW - 6;
+        const by = h - boxH - 6;
+        ctx.fillStyle = "rgba(0,0,0,0.52)";
+        ctx.fillRect(bx, by, boxW, boxH);
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "left";
+        linhas.forEach((ln, i) => ctx.fillText(ln, bx + pad, by + pad + (i + 1) * lh - 3));
+
+        resolve(canvas.toDataURL("image/jpeg", 0.65));
       };
       img.src = e.target.result;
     };
@@ -665,7 +749,7 @@ async function salvarIncendio() {
     causa: document.getElementById("causa").value
   };
 
-  const fireData = { data, polygon: currentPolygon, signature: getSignatureData(), photos: fotosCapturadas };
+  const fireData = { data, polygon: currentPolygon, signature: getSignatureData(), photos: fotosCapturadas, mapSnapshot: mapSnapshotData };
 
   if (navigator.onLine) {
     try {
@@ -744,12 +828,13 @@ async function loadDashboard() {
     }
     tbody.innerHTML = data.rows.map(r => {
       const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
+      const nomeEquipe = d.nomeEquipe || r.team || "–";
       return `<tr>
         <td>#${r.id}</td>
         <td>${new Date(r.createdAt).toLocaleString("pt-BR")}</td>
-        <td>${r.team}</td>
-        <td>${d.municipio || "–"}</td>
-        <td>${r.area ? r.area.toFixed(4) : "N/A"}</td>
+        <td title="${nomeEquipe}">${nomeEquipe}</td>
+        <td title="${d.municipio || "–"}">${d.municipio || "–"}</td>
+        <td>${r.area ? r.area.toFixed(2) : "N/A"}</td>
         <td><a href="/report/${r.id}" target="_blank" class="btn btn-sm btn-secondary">📄 PDF</a></td>
       </tr>`;
     }).join("");

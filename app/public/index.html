@@ -336,8 +336,8 @@
     </button>
   </div>
   <!-- Barra de confirmação do polígono (aparece só no modo de desenho) -->
-  <div id="map-draw-confirm" style="display:none; position:absolute; bottom:72px; left:0; right:0; z-index:1000; padding:10px 12px; background:#fff; border-top:1px solid #e0e0e0; box-shadow:0 -2px 8px rgba(0,0,0,.12); gap:10px;">
-    <button class="btn btn-secondary" onclick="cancelarDesenhoMapaPrincipal()" style="flex:1;">✕ Cancelar</button>
+  <div id="map-draw-confirm">
+    <button id="btn-desenhar" class="btn btn-secondary" onclick="toggleDesenharPoligono()" style="flex:1;">✏️ Desenhar Polígono</button>
     <button class="btn btn-primary" onclick="confirmarDesenhoMapaPrincipal()" style="flex:1;">✅ Confirmar Área</button>
   </div>
 </div>
@@ -380,7 +380,7 @@
             <th>Data/Hora</th>
             <th>Equipe</th>
             <th>Município</th>
-            <th>Área (ha)</th>
+            <th>Área(ha)</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -389,21 +389,22 @@
         </tbody>
       </table>
     </div>
+  </div>
 
-    <div class="sobre-card" id="sobre-section" style="display:none;">
-      <div class="sobre-header" onclick="toggleSobre()">
-        <span>ℹ️ Sobre o Sistema</span>
-        <span class="sobre-chevron" id="sobre-chevron">▼</span>
-      </div>
-      <div class="sobre-body" id="sobre-body">
-        <div class="sobre-logo">🔥</div>
-        <div class="sobre-title">Brigada Ouro</div>
-        <div class="sobre-sub">Sistema de Combate a Incêndios Florestais</div>
-        <div class="sobre-divider"></div>
-        <div class="sobre-row"><span class="sobre-icon">👤</span><span>Desenvolvido por <strong>Sócrates Resende</strong></span></div>
-        <div class="sobre-row"><span class="sobre-icon">✉️</span><a href="mailto:socrates.resende@gmail.com" class="sobre-link">socrates.resende@gmail.com</a></div>
-        <div class="sobre-row"><span class="sobre-icon">📞</span><a href="tel:+5531999943956" class="sobre-link">(31) 99994-3956</a></div>
-      </div>
+  <!-- Sobre fixo na parte inferior do dashboard -->
+  <div class="sobre-card" id="sobre-section">
+    <div class="sobre-header" onclick="toggleSobre()">
+      <span>ℹ️ Sobre o Sistema</span>
+      <span class="sobre-chevron" id="sobre-chevron">▼</span>
+    </div>
+    <div class="sobre-body" id="sobre-body" style="display:none;">
+      <div class="sobre-logo">🔥</div>
+      <div class="sobre-title">Brigada Ouro</div>
+      <div class="sobre-sub">Sistema de Combate a Incêndios Florestais</div>
+      <div class="sobre-divider"></div>
+      <div class="sobre-row"><span class="sobre-icon">👤</span><span>Desenvolvido por <strong>Sócrates Resende</strong></span></div>
+      <div class="sobre-row"><span class="sobre-icon">✉️</span><a href="mailto:socrates.resende@gmail.com" class="sobre-link">socrates.resende@gmail.com</a></div>
+      <div class="sobre-row"><span class="sobre-icon">📞</span><a href="tel:+5531999943956" class="sobre-link">(31) 99994-3956</a></div>
     </div>
   </div>
 </div>
@@ -449,6 +450,6 @@
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 <script src="db.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
