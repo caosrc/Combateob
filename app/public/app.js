@@ -134,14 +134,10 @@ function initMainMap() {
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     { attribution: "© Esri World Imagery", maxZoom: 19, crossOrigin: "anonymous" }
   );
-  mainMap = L.map("map", { layers: [osmLayer] }).setView([-20.52, -43.69], 12);
-  L.control.layers(
-    { "🗺️ Mapa": osmLayer, "🛰️ Satélite": satLayer },
-    {},
-    { position: "topright" }
-  ).addTo(mainMap);
+  mainMap = L.map("map", { layers: [osmLayer], zoomControl: true }).setView([-20.52, -43.69], 12);
   fireLayerGroup = L.featureGroup().addTo(mainMap);
   mapInitialized = true;
+  atualizarBotoesLayer();
   loadFiresOnMap();
 }
 
@@ -249,6 +245,27 @@ let polygonHandler = null;
 let isDrawingPolygon = false;
 let mapSnapshotData = null;
 
+function setMapLayer(tipo) {
+  if (!mainMap) return;
+  if (tipo === "satelite") {
+    if (osmLayer && mainMap.hasLayer(osmLayer)) mainMap.removeLayer(osmLayer);
+    if (satLayer && !mainMap.hasLayer(satLayer)) mainMap.addLayer(satLayer);
+  } else {
+    if (satLayer && mainMap.hasLayer(satLayer)) mainMap.removeLayer(satLayer);
+    if (osmLayer && !mainMap.hasLayer(osmLayer)) mainMap.addLayer(osmLayer);
+  }
+  atualizarBotoesLayer();
+}
+
+function atualizarBotoesLayer() {
+  const btnMapa = document.getElementById("btn-layer-mapa");
+  const btnSat  = document.getElementById("btn-layer-sat");
+  if (!btnMapa || !btnSat) return;
+  const isSat = mainMap && satLayer && mainMap.hasLayer(satLayer);
+  btnMapa.classList.toggle("active", !isSat);
+  btnSat.classList.toggle("active",  !!isSat);
+}
+
 function abrirMapaDesenho() {
   switchTab("mapa");
   setTimeout(() => {
@@ -256,6 +273,7 @@ function abrirMapaDesenho() {
     if (osmLayer && satLayer && mainMap.hasLayer(osmLayer)) {
       mainMap.removeLayer(osmLayer);
       mainMap.addLayer(satLayer);
+      atualizarBotoesLayer();
     }
     if (coordCapturada.lat) {
       mainMap.setView([coordCapturada.lat, coordCapturada.lng], 16);
@@ -372,7 +390,23 @@ async function captureMapSnapshot() {
       ctx.fill();
     });
 
-    return canvas.toDataURL("image/jpeg", 0.75);
+    // Área escrita no centro do polígono
+    const centLat = currentPolygon.reduce((s, [, lat]) => s + lat, 0) / currentPolygon.length;
+    const centLng = currentPolygon.reduce((s, [lng]) => s + lng, 0) / currentPolygon.length;
+    const centPt  = mainMap.latLngToContainerPoint([centLat, centLng]);
+    const ha = calcularHectares(currentPolygon);
+    const areaLabel = ha.toFixed(2).replace(".", ",") + " Ha";
+    const fSize = Math.max(20, Math.round(size.x / 18));
+    ctx.font = `bold ${fSize}px Arial`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = "#1a1a00";
+    ctx.fillText(areaLabel, centPt.x, centPt.y);
+    ctx.shadowBlur = 0;
+
+    return canvas.toDataURL("image/jpeg", 0.82);
   } catch(e) {
     console.warn("Snapshot falhou:", e);
     return null;

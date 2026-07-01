@@ -327,6 +327,11 @@
 <!-- ABA MAPA -->
 <div class="tab-content" id="tab-mapa" style="display:none;">
   <div id="map"></div>
+  <!-- Alternador de camada (Rua / Satélite) -->
+  <div class="map-layer-switch">
+    <button id="btn-layer-mapa" class="layer-btn active" onclick="setMapLayer('mapa')">🗺️ Rua</button>
+    <button id="btn-layer-sat" class="layer-btn" onclick="setMapLayer('satelite')">🛰️ Satélite</button>
+  </div>
   <div class="map-controls">
     <button class="map-gps-btn" id="map-gps-btn" onclick="toggleGPSMapa()" title="Ativar/desativar GPS">
       <span id="map-gps-icon">📍</span>

@@ -307,28 +307,10 @@ app.get("/report/:id", (req, res) => {
     doc.fontSize(8).fillColor(DARK).font("Helvetica-Bold")
       .text(val(d.brigadista), ML, footerY + 75, { width: PW, align: "center" });
 
-    // ── PÁGINA DO MAPA (snapshot) ──
-    if (row.mapSnapshot) {
-      try {
-        const snapBuf = Buffer.from(row.mapSnapshot.replace(/^data:image\/\w+;base64,/, ""), "base64");
-        doc.addPage({ size: "A4", margin: 0 });
-        doc.rect(0, 0, 595, 58).fill(RED);
-        doc.fontSize(7).fillColor("#ffcccc").font("Helvetica")
-          .text("MAPA DA ÁREA QUEIMADA", ML, 14, { width: PW, align: "center" });
-        doc.fontSize(14).fillColor("#ffffff").font("Helvetica-Bold")
-          .text(`Incêndio #${String(row.id).padStart(4,"0")} – Brigada Ouro`, ML, 28, { width: PW, align: "center" });
-        const mW = 500, mH = 375;
-        const mX = ML + (PW - mW) / 2;
-        doc.image(snapBuf, mX, 75, { width: mW, height: mH, fit: [mW, mH] });
-        const areaText = row.area ? `Área: ${row.area.toFixed(4)} ha` : "";
-        const munText = d.municipio ? `Município: ${d.municipio}` : "";
-        doc.fontSize(10).fillColor(DARK).font("Helvetica-Bold")
-          .text([areaText, munText].filter(Boolean).join("   •   "), ML, 75 + mH + 12, { width: PW, align: "center" });
-      } catch (_) {}
-    }
-
-    // ── PÁGINAS DE FOTOS ──
+    // ── PÁGINAS DE FOTOS + MAPA ──
     const photoList = (() => { try { return JSON.parse(row.photos || "[]"); } catch { return []; } })();
+    // Adiciona o snapshot do mapa como a última "foto"
+    if (row.mapSnapshot) photoList.push(row.mapSnapshot);
     if (photoList.length > 0) {
       const PER_PAGE = 4;
       const imgW = 242, imgH = 340;

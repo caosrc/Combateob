@@ -631,6 +631,37 @@ html, body {
   color: #fff !important;
   border-color: #c0392b !important;
 }
+/* Alternador Rua / Satélite */
+.map-layer-switch {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  background: rgba(255,255,255,0.97);
+  border-radius: 22px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
+.layer-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.layer-btn.active {
+  background: #e63946;
+  color: #fff;
+}
+.layer-btn:not(.active):active { background: #f5f5f5; }
+
 .map-controls {
   position: absolute;
   top: 12px;
