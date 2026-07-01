@@ -3,9 +3,6 @@ pages_build_output_dir = "app/public"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-[build]
-command = "echo 'Worker pre-bundled, nothing to build'"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "brigada-ouro"
