@@ -216,7 +216,7 @@ async function loadFiresOnMap() {
       if (poly.length > 0 && Array.isArray(poly[0]) && Array.isArray(poly[0][0])) poly = poly[0];
       const info = `<b>Incêndio #${r.id}</b><br>
         Município: ${d.municipio || "–"}<br>
-        Equipe: ${r.team}<br>
+        Equipe: ${d.nomeEquipe || r.team || "–"}<br>
         Área: ${r.area ? r.area.toFixed(4) + " ha" : "–"}<br>
         Data: ${new Date(r.createdAt).toLocaleString("pt-BR")}<br>
         Causa: ${d.causa || "–"}`;
