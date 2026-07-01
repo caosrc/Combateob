@@ -287,8 +287,6 @@ function iniciarDesenhoNoMapaPrincipal() {
   });
 
   document.getElementById("map-draw-confirm").style.display = "flex";
-  // Já inicia o modo de desenho automaticamente
-  setTimeout(() => toggleDesenharPoligono(), 200);
 }
 
 function toggleDesenharPoligono() {

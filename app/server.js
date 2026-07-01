@@ -161,7 +161,7 @@ app.get("/report/:id", (req, res) => {
     doc.fontSize(7).fillColor("#ffcccc").font("Helvetica")
       .text("SISTEMA DE REGISTRO DE OCORRÊNCIAS", ML, 22, { width: PW, align: "center" });
     doc.fontSize(18).fillColor("#ffffff").font("Helvetica-Bold")
-      .text("RELATÓRIO DE INCÊNDIO FLORESTAL", ML, 34, { width: PW, align: "center" });
+      .text("RELATÓRIO DE INCÊNDIO", ML, 34, { width: PW, align: "center" });
     doc.fontSize(8).fillColor("#ffdddd").font("Helvetica")
       .text("Brigada de Prevenção e Combate a Incêndios Florestais", ML, 60, { width: PW, align: "center" });
 
