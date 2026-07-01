@@ -361,58 +361,120 @@ app.get("/export/excel", auth, async (req, res) => {
     wb.created = now;
 
     // ── PLANILHA 1: DADOS COMPLETOS ──
-    const ws1 = wb.addWorksheet("Registros Completos");
+    const ws1 = wb.addWorksheet("Registros", { properties: { tabColor: { argb: "FFC0392B" } } });
 
-    const titleRow = ws1.addRow(["RELATÓRIO DE INCÊNDIOS FLORESTAIS – Brigada Ouro"]);
-    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: "FFC0392B" } };
-    ws1.mergeCells("A1:AD1");
-
-    const subRow = ws1.addRow([`Gerado em: ${gerado}   |   Total de registros: ${rows.length}`]);
-    subRow.getCell(1).font = { italic: true, size: 10, color: { argb: "FF555555" } };
-    ws1.mergeCells("A2:AD2");
-
-    ws1.addRow([]);
+    // Helpers de borda e preenchimento
+    const bThin  = (argb = "FFD8D8D8") => ({ style: "thin",   color: { argb } });
+    const bMed   = (argb = "FFAAAAAA") => ({ style: "medium", color: { argb } });
+    const border = (t, r, b, l) => ({ top: t, right: r, bottom: b, left: l });
+    const borderThin = border(bThin(), bThin(), bThin(), bThin());
+    const fill   = argb => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+    const centerMid = { horizontal: "center", vertical: "middle" };
+    const leftMid   = { horizontal: "left",   vertical: "middle", wrapText: true };
 
     const MAX_PHOTOS_COLS = 8;
+    const TOTAL_COLS = 30 + MAX_PHOTOS_COLS; // 38
+
+    // ── LINHA 1: TÍTULO ──────────────────────────────────────────
+    ws1.mergeCells(1, 1, 1, TOTAL_COLS);
+    const t1 = ws1.getRow(1);
+    t1.height = 48;
+    const c1 = t1.getCell(1);
+    c1.value = "🔥  BRIGADA OURO  –  REGISTRO DE INCÊNDIOS FLORESTAIS";
+    c1.font  = { bold: true, size: 16, color: { argb: "FFFFFFFF" }, name: "Calibri" };
+    c1.fill  = fill("FFC0392B");
+    c1.alignment = centerMid;
+
+    // ── LINHA 2: SUBTÍTULO ────────────────────────────────────────
+    ws1.mergeCells(2, 1, 2, TOTAL_COLS);
+    const t2 = ws1.getRow(2);
+    t2.height = 22;
+    const c2 = t2.getCell(1);
+    c2.value = `Gerado em: ${gerado}   |   Total de registros: ${rows.length}   |   Brigada de Prevenção e Combate a Incêndios Florestais`;
+    c2.font  = { italic: true, size: 10, color: { argb: "FF555555" } };
+    c2.fill  = fill("FFFFF8F8");
+    c2.alignment = centerMid;
+
+    // ── LINHA 3: GRUPOS DE COLUNAS (faixa colorida) ───────────────
+    const colGroups = [
+      { label: "IDENTIFICAÇÃO",  start: 1,  end: 6,  color: "FFC0392B" },
+      { label: "LOCALIZAÇÃO",    start: 7,  end: 13, color: "FF2471A3" },
+      { label: "DETECÇÃO",       start: 14, end: 16, color: "FF117A65" },
+      { label: "CONTATO",        start: 17, end: 19, color: "FF6C3483" },
+      { label: "COMBATE",        start: 20, end: 27, color: "FF1E8449" },
+      { label: "RESULTADO",      start: 28, end: 30, color: "FF935116" },
+      { label: "FOTOS",          start: 31, end: TOTAL_COLS, color: "FF555555" },
+    ];
+    const t3 = ws1.getRow(3);
+    t3.height = 20;
+    colGroups.forEach(g => {
+      ws1.mergeCells(3, g.start, 3, g.end);
+      const gc = t3.getCell(g.start);
+      gc.value = g.label;
+      gc.font  = { bold: true, size: 9, color: { argb: "FFFFFFFF" } };
+      gc.fill  = fill(g.color);
+      gc.alignment = centerMid;
+    });
+
+    // ── LINHA 4: CABEÇALHOS DAS COLUNAS ──────────────────────────
     const headers = [
-      "Nº Registro", "Data/Hora Registro", "Equipe",
+      // Identificação (1-6)
+      "Nº", "Data / Hora Registro", "Equipe (Sistema)",
       "Brigadista Responsável", "Nome da Equipe", "Brigadistas da Equipe",
+      // Localização (7-13)
       "Município", "Coordenadas GPS", "Latitude", "Longitude",
-      "Local de Referência", "Localização (Entorno/Interno)", "UC (S/N)",
+      "Local de Referência", "Localização", "UC (S/N)",
+      // Detecção (14-16)
       "Data Detecção", "Hora Detecção", "Forma de Detecção",
-      "Nome do Contato", "Orgão / Função", "Telefone",
-      "Início Combate – Data", "Início Combate – Hora",
-      "Incêndio Debelado – Data", "Debelado – Hora",
-      "Pessoal Mobilizado", "Veículos Mobilizados",
-      "Houve Alimentação", "Causa do Incêndio",
-      "Descrição da Ocorrência", "Área Atingida (ha)", "Qtd. Fotos",
+      // Contato (17-19)
+      "Nome do Contato", "Órgão / Função", "Telefone",
+      // Combate (20-27)
+      "Início – Data", "Início – Hora",
+      "Debelado – Data", "Debelado – Hora",
+      "Pessoal", "Veículos", "Alimentação", "Causa",
+      // Resultado (28-30)
+      "Descrição da Ocorrência", "Área (ha)", "Qtd. Fotos",
+      // Fotos (31-38)
       ...Array.from({ length: MAX_PHOTOS_COLS }, (_, i) => `Foto ${i + 1}`)
     ];
-    const thinBorder = { style: "thin", color: { argb: "FFD0D0D0" } };
-    const borderAll = { top: thinBorder, left: thinBorder, bottom: thinBorder, right: thinBorder };
-
-    const headerRow = ws1.addRow(headers);
-    headerRow.eachCell(cell => {
-      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC0392B" } };
-      cell.alignment = { vertical: "middle", wrapText: true };
-      cell.border = borderAll;
+    const t4 = ws1.getRow(4);
+    t4.height = 40;
+    headers.forEach((h, i) => {
+      const ci = i + 1;
+      const grp = colGroups.find(g => ci >= g.start && ci <= g.end);
+      const gc  = t4.getCell(ci);
+      gc.value = h;
+      gc.font  = { bold: true, size: 9, color: { argb: "FFFFFFFF" } };
+      gc.fill  = fill(grp ? grp.color + "CC" : "FF888888"); // slightly lighter shade
+      gc.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      gc.border = borderThin;
     });
-    ws1.views = [{ state: "frozen", ySplit: 4 }];
+    ws1.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: TOTAL_COLS } };
+    ws1.views = [{ state: "frozen", ySplit: 4, xSplit: 1 }];
 
+    // ── LARGURAS DAS COLUNAS ──────────────────────────────────────
     const colWidths = [
-      12, 22, 20, 28, 25, 50, 20, 30, 12, 12,
-      30, 22, 8, 14, 12, 30, 25, 22, 16, 18,
-      14, 18, 14, 30, 30, 16, 25, 50, 14, 8,
-      ...Array(MAX_PHOTOS_COLS).fill(16)
+      9, 20, 18, 26, 24, 40,          // Identificação
+      18, 28, 11, 11, 28, 18, 7,      // Localização
+      13, 10, 28,                      // Detecção
+      24, 20, 16,                      // Contato
+      13, 10, 13, 10, 22, 22, 12, 24, // Combate
+      38, 12, 8,                       // Resultado
+      ...Array(MAX_PHOTOS_COLS).fill(19) // Fotos
     ];
-    ws1.columns = headers.map((h, i) => ({ width: colWidths[i] || 15 }));
+    ws1.columns = colWidths.map(w => ({ width: w }));
 
-    const IMG_W = 110, IMG_H = 82;
+    // ── ALINHAMENTO por coluna (0-indexed) ───────────────────────
+    // centered: ID, datas, horas, lat, lng, UC, área, qtd, S/N
+    const centeredCols = new Set([0,1,8,9,12,13,14,19,20,21,22,25,29,30]);
+
+    // ── DADOS ─────────────────────────────────────────────────────
+    const IMG_W = 120, IMG_H = 90;
     rows.forEach((r, ri) => {
       const d = parseData(r.data);
       const photos = (() => { try { return JSON.parse(r.photos || "[]"); } catch { return []; } })();
       const photoPlaceholders = Array(MAX_PHOTOS_COLS).fill("");
+
       const dataRow = ws1.addRow([
         `#${String(r.id).padStart(4, "0")}`,
         new Date(r.createdAt).toLocaleString("pt-BR"),
@@ -422,8 +484,8 @@ app.get("/export/excel", auth, async (req, res) => {
         d.brigadistas || "",
         d.municipio || "",
         d.coordStr || "",
-        d.lat ? parseFloat(d.lat) : "",
-        d.lng ? parseFloat(d.lng) : "",
+        d.lat ? parseFloat(parseFloat(d.lat).toFixed(6)) : "",
+        d.lng ? parseFloat(parseFloat(d.lng).toFixed(6)) : "",
         d.localReferencia || "",
         d.local || "",
         uc2text(d.uc),
@@ -446,16 +508,28 @@ app.get("/export/excel", auth, async (req, res) => {
         photos.length,
         ...photoPlaceholders
       ]);
-      const bgColor = ri % 2 === 0 ? "FFFFF5F5" : "FFFFFFFF";
-      dataRow.eachCell(cell => {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
-        cell.border = borderAll;
+
+      const bg = ri % 2 === 0 ? "FFFFFFFF" : "FFF5F5F5";
+      dataRow.height = photos.length > 0 ? IMG_H + 4 : 20;
+      dataRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.fill   = fill(bg);
+        cell.border = borderThin;
+        cell.font   = { size: 9 };
+        cell.alignment = centeredCols.has(colNum - 1)
+          ? { horizontal: "center", vertical: "middle" }
+          : { horizontal: "left",   vertical: "middle", wrapText: colNum === 28 };
       });
 
-      // Imagens nas colunas de foto (30-37, 0-indexed)
+      // Área: negrito e formato numérico
+      const areaCell = dataRow.getCell(29);
+      if (r.area) {
+        areaCell.font = { bold: true, size: 9, color: { argb: "FFC0392B" } };
+        areaCell.numFmt = "#,##0.0000";
+      }
+
+      // Imagens de fotos
       if (photos.length > 0) {
-        dataRow.height = IMG_H + 4;
-        const rowIdx = dataRow.number - 1; // 0-indexed for addImage
+        const rowIdx = dataRow.number - 1;
         for (let pi = 0; pi < Math.min(photos.length, MAX_PHOTOS_COLS); pi++) {
           try {
             const b64 = photos[pi].replace(/^data:image\/\w+;base64,/, "");
@@ -471,7 +545,7 @@ app.get("/export/excel", auth, async (req, res) => {
     });
 
     // ── PLANILHA 2: RESUMO ──
-    const ws2 = wb.addWorksheet("Resumo Estatístico");
+    const ws2 = wb.addWorksheet("Resumo", { properties: { tabColor: { argb: "FF2471A3" } } });
     const totalArea = rows.reduce((a, b) => a + (b.area || 0), 0);
     const thisMonth = rows.filter(r => {
       const d = new Date(r.createdAt);
@@ -484,27 +558,92 @@ app.get("/export/excel", auth, async (req, res) => {
       causas[c] = (causas[c] || 0) + 1;
     });
 
-    const r2t = ws2.addRow(["RESUMO ESTATÍSTICO"]);
-    r2t.getCell(1).font = { bold: true, size: 14, color: { argb: "FFC0392B" } };
-    ws2.mergeCells("A1:B1");
-    const r2s = ws2.addRow([`Gerado em: ${gerado}`]);
-    r2s.getCell(1).font = { italic: true, color: { argb: "FF555555" } };
-    ws2.mergeCells("A2:B2");
+    // Título
+    ws2.mergeCells("A1:C1");
+    const w2t1 = ws2.getRow(1); w2t1.height = 44;
+    const w2c1 = w2t1.getCell(1);
+    w2c1.value = "📊  BRIGADA OURO – RESUMO ESTATÍSTICO";
+    w2c1.font  = { bold: true, size: 15, color: { argb: "FFFFFFFF" }, name: "Calibri" };
+    w2c1.fill  = fill("FFC0392B");
+    w2c1.alignment = { horizontal: "center", vertical: "middle" };
+
+    ws2.mergeCells("A2:C2");
+    const w2t2 = ws2.getRow(2); w2t2.height = 20;
+    const w2c2 = w2t2.getCell(1);
+    w2c2.value = `Gerado em: ${gerado}`;
+    w2c2.font  = { italic: true, size: 10, color: { argb: "FF777777" } };
+    w2c2.fill  = fill("FFFFF8F8");
+    w2c2.alignment = { horizontal: "center", vertical: "middle" };
+
     ws2.addRow([]);
-    const r2h = ws2.addRow(["INDICADOR", "VALOR"]);
-    r2h.eachCell(c => { c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC0392B" } }; });
-    ws2.addRow(["Total de registros", rows.length]);
-    ws2.addRow(["Área total atingida (ha)", parseFloat(totalArea.toFixed(4))]);
-    ws2.addRow(["Área média por ocorrência (ha)", rows.length > 0 ? parseFloat((totalArea / rows.length).toFixed(4)) : 0]);
-    ws2.addRow(["Registros neste mês", thisMonth]);
+
+    // Sub-título Indicadores
+    ws2.mergeCells("A4:C4");
+    const w2h = ws2.getRow(4); w2h.height = 26;
+    const w2hc = w2h.getCell(1);
+    w2hc.value = "INDICADORES GERAIS";
+    w2hc.font  = { bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+    w2hc.fill  = fill("FF2471A3");
+    w2hc.alignment = { horizontal: "center", vertical: "middle" };
+
+    const statsData = [
+      ["Total de Registros",                rows.length,                                         ""],
+      ["Área Total Atingida",                parseFloat(totalArea.toFixed(4)),                   "ha"],
+      ["Área Média por Ocorrência",          rows.length > 0 ? parseFloat((totalArea/rows.length).toFixed(4)) : 0, "ha"],
+      ["Registros neste Mês",               thisMonth,                                           ""],
+    ];
+    statsData.forEach(([label, val, unit], si) => {
+      const sr = ws2.addRow([label, val, unit]);
+      sr.height = 22;
+      const bg = si % 2 === 0 ? "FFFFFFFF" : "FFF0F6FF";
+      sr.eachCell({ includeEmpty: true }, cell => {
+        cell.fill   = fill(bg);
+        cell.border = borderThin;
+        cell.font   = { size: 10 };
+      });
+      sr.getCell(1).font = { size: 10, bold: true };
+      sr.getCell(1).alignment = { horizontal: "left",   vertical: "middle" };
+      sr.getCell(2).font      = { size: 11, bold: true, color: { argb: "FFC0392B" } };
+      sr.getCell(2).alignment = { horizontal: "center", vertical: "middle" };
+      sr.getCell(3).alignment = { horizontal: "left",   vertical: "middle" };
+    });
+
     ws2.addRow([]);
-    const r2c = ws2.addRow(["OCORRÊNCIAS POR CAUSA"]);
-    r2c.getCell(1).font = { bold: true };
-    ws2.mergeCells(`A${r2c.number}:B${r2c.number}`);
-    const r2ch = ws2.addRow(["Causa", "Quantidade"]);
-    r2ch.eachCell(c => { c.font = { bold: true }; });
-    Object.entries(causas).forEach(([k, v]) => ws2.addRow([k, v]));
-    ws2.columns = [{ width: 40 }, { width: 20 }];
+
+    // Sub-título Causas
+    const cauRow = ws2.addRow(["OCORRÊNCIAS POR CAUSA", "", ""]);
+    ws2.mergeCells(`A${cauRow.number}:C${cauRow.number}`);
+    cauRow.height = 26;
+    cauRow.getCell(1).font  = { bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+    cauRow.getCell(1).fill  = fill("FF117A65");
+    cauRow.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+
+    const cauHdr = ws2.addRow(["Causa", "Qtd", "%"]);
+    cauHdr.height = 22;
+    cauHdr.eachCell(cell => {
+      cell.font  = { bold: true, size: 9, color: { argb: "FFFFFFFF" } };
+      cell.fill  = fill("FF1E8449");
+      cell.border = borderThin;
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    });
+    const totalCausas = Object.values(causas).reduce((a, b) => a + b, 0);
+    Object.entries(causas).sort((a, b) => b[1] - a[1]).forEach(([k, v], ci) => {
+      const cr = ws2.addRow([k, v, totalCausas > 0 ? parseFloat((v / totalCausas * 100).toFixed(1)) : 0]);
+      cr.height = 20;
+      const bg = ci % 2 === 0 ? "FFFFFFFF" : "FFF0FFF4";
+      cr.eachCell({ includeEmpty: true }, cell => {
+        cell.fill   = fill(bg);
+        cell.border = borderThin;
+        cell.font   = { size: 9 };
+      });
+      cr.getCell(1).alignment = { horizontal: "left",   vertical: "middle" };
+      cr.getCell(2).alignment = { horizontal: "center", vertical: "middle" };
+      cr.getCell(2).font      = { bold: true, size: 9 };
+      cr.getCell(3).alignment = { horizontal: "center", vertical: "middle" };
+      cr.getCell(3).numFmt    = "0.0\"%\"";
+    });
+
+    ws2.columns = [{ width: 38 }, { width: 12 }, { width: 10 }];
 
     // ── PLANILHA 3: FOTOS ──
     const ws3 = wb.addWorksheet("Fotos das Ocorrências");
