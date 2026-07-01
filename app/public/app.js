@@ -120,24 +120,27 @@ function capturarGPS() {
 // ==================== MAP PRINCIPAL (aba Mapa) ====================
 let mainMap = null;
 let fireLayerGroup = null;
+let osmLayer = null;
+let satLayer = null;
 
 function initMainMap() {
   if (mapInitialized) {
-    mainMap.invalidateSize();
+    setTimeout(() => mainMap.invalidateSize(), 100);
     return;
   }
-  mainMap = L.map("map").setView([-15.78, -47.93], 5);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap"
-  }).addTo(mainMap);
-  L.tileLayer(
+  osmLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap", maxZoom: 19
+  });
+  satLayer = L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { attribution: "© Esri", opacity: 0 }
+    { attribution: "© Esri World Imagery", maxZoom: 19 }
   );
-  L.control.layers({
-    "🗺️ OSM": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap" }),
-    "🛰️ Satélite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "© Esri" })
-  }).addTo(mainMap);
+  mainMap = L.map("map", { layers: [osmLayer] }).setView([-20.52, -43.69], 12);
+  L.control.layers(
+    { "🗺️ Mapa": osmLayer, "🛰️ Satélite": satLayer },
+    {},
+    { position: "topright" }
+  ).addTo(mainMap);
   fireLayerGroup = L.featureGroup().addTo(mainMap);
   mapInitialized = true;
   loadFiresOnMap();
@@ -249,14 +252,24 @@ function abrirMapaDesenho() {
   switchTab("mapa");
   setTimeout(() => {
     mainMap.invalidateSize();
+    // Ativa camada satélite por padrão no modo de desenho
+    if (osmLayer && satLayer) {
+      if (mainMap.hasLayer(osmLayer)) {
+        mainMap.removeLayer(osmLayer);
+        mainMap.addLayer(satLayer);
+      }
+    }
     // Centraliza no ponto GPS capturado, se disponível
     if (coordCapturada.lat) {
       mainMap.setView([coordCapturada.lat, coordCapturada.lng], 16);
+    } else {
+      // Centraliza em Ouro Branco por padrão
+      mainMap.setView([-20.52, -43.69], 13);
     }
     // Ativa GPS do mapa se ainda não estiver ativo
     if (!gpsAtivo) toggleGPSMapa();
     iniciarDesenhoNoMapaPrincipal();
-  }, 350);
+  }, 400);
 }
 
 function iniciarDesenhoNoMapaPrincipal() {
