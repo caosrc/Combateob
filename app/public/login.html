@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fogo Branco</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -12,19 +12,66 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fogo Branco">
   <meta name="mobile-web-app-capable" content="yes">
+  <style>
+    /* ── Barra de progresso de instalação ── */
+    #install-progress {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: #1a3a5c; color: #fff;
+      padding: 10px 16px;
+      flex-direction: column; gap: 4px;
+    }
+    #install-progress .ip-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    #install-progress .ip-bar-wrap {
+      background: rgba(255,255,255,0.25); border-radius: 4px;
+      height: 7px; overflow: hidden; flex: 1;
+    }
+    #install-progress .ip-bar {
+      background: #4fc3f7; height: 100%; width: 0%;
+      transition: width 0.3s ease;
+    }
+    #install-progress .ip-pct {
+      font-weight: 700; min-width: 40px; text-align: right; font-size: 13px;
+    }
+    #install-progress .ip-txt { font-size: 12px; }
+
+    /* ── Botão Instalar App ── */
+    .btn-install-app {
+      margin-top: 18px;
+      width: 100%;
+      background: linear-gradient(135deg, #1a3a5c, #2d6a9f);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      transition: opacity 0.2s;
+    }
+    .btn-install-app:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-install-app:active { opacity: 0.85; }
+    #install-hint {
+      font-size: 11px; color: #999; text-align: center; margin-top: 6px;
+    }
+  </style>
 </head>
 <body>
 
-<!-- BARRA DE PROGRESSO MAPA OFFLINE -->
-<div id="tiles-progress-banner" style="display:none; background:#1a3a5c; color:#fff; font-size:12px; padding:8px 16px; align-items:center; gap:10px;">
-  <span>📥</span>
-  <div style="flex:1;">
-    <div id="tiles-progress-text">Instalando mapa offline (40 km de Ouro Branco)…</div>
-    <div style="background:rgba(255,255,255,0.25); border-radius:4px; height:6px; margin-top:4px; overflow:hidden;">
-      <div id="tiles-progress-bar" style="background:#4fc3f7; height:100%; width:0%; transition:width 0.4s;"></div>
-    </div>
+<!-- BARRA DE PROGRESSO DE INSTALAÇÃO -->
+<div id="install-progress">
+  <div class="ip-row">
+    <span>📥</span>
+    <span class="ip-txt" id="ip-txt">Baixando mapa offline de Ouro Branco…</span>
+    <span class="ip-pct" id="ip-pct">0%</span>
   </div>
-  <span id="tiles-progress-pct" style="font-weight:700; min-width:40px; text-align:right;">0%</span>
+  <div class="ip-bar-wrap">
+    <div class="ip-bar" id="ip-bar"></div>
+  </div>
 </div>
 
 <div class="auth-container">
@@ -33,7 +80,7 @@
     <h1>Fogo Branco</h1>
     <p>Sistema de Combate a Incêndios Florestais</p>
 
-    <div class="error-msg" id="error-msg"></div>
+    <div class="error-msg" id="error-msg" style="display:none;"></div>
 
     <!-- TELA 1: Escolha de perfil -->
     <div id="tela-perfil">
@@ -47,6 +94,14 @@
         <span class="perfil-label">Gestor</span>
         <span class="perfil-sub">Acesso completo</span>
       </button>
+
+      <!-- Botão Instalar App (some após instalação) -->
+      <div id="install-section" style="display:none;">
+        <button class="btn-install-app" id="btn-instalar" onclick="instalarApp()">
+          📲 Instalar App
+        </button>
+        <p id="install-hint">Instale para usar sem internet, com mapa offline</p>
+      </div>
     </div>
 
     <!-- TELA 2: Escolha da equipe (gestor) -->
@@ -68,7 +123,8 @@
       <p style="font-size:14px; color:#333; margin-bottom:6px; font-weight:600;" id="equipe-selecionada-label"></p>
       <p style="font-size:13px; color:#666; margin-bottom:16px;">Digite a senha de acesso:</p>
       <div class="form-group">
-        <input type="password" id="senha-gestor" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter') entrarGestor()">
+        <input type="password" id="senha-gestor" placeholder="Senha" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter') entrarGestor()">
       </div>
       <button class="btn btn-primary" onclick="entrarGestor()" style="margin-bottom:10px;">Entrar como Gestor</button>
       <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="voltarEquipes()">← Voltar</button>
@@ -78,24 +134,133 @@
 </div>
 
 <script>
-  if (localStorage.getItem("role")) {
-    window.location.href = "/";
-  }
+  // ──────────────────────────────────────────────────────────────────────
+  // NÃO faz auto-redirect – a tela de perfil é sempre a primeira tela
+  // ──────────────────────────────────────────────────────────────────────
 
   let equipeSelecionada = "";
+  let deferredInstallPrompt = null;
 
+  // ── Detecta se o app já está instalado ─────────────────────────────────
+  function appJaInstalado() {
+    return window.matchMedia("(display-mode: standalone)").matches
+      || window.navigator.standalone === true
+      || localStorage.getItem("app_installed") === "true";
+  }
+
+  function mostrarBotaoInstalar() {
+    if (!appJaInstalado()) {
+      document.getElementById("install-section").style.display = "block";
+    }
+  }
+
+  // ── Captura o evento de instalação do navegador ────────────────────────
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    mostrarBotaoInstalar();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    localStorage.setItem("app_installed", "true");
+    document.getElementById("install-section").style.display = "none";
+  });
+
+  // Em iOS/Safari standalone ou se já instalado, esconde o botão
+  if (appJaInstalado()) {
+    document.getElementById("install-section").style.display = "none";
+  } else {
+    // Mostra o botão mesmo sem o evento (iOS Safari, etc.)
+    // O evento beforeinstallprompt nem sempre dispara no iOS
+    mostrarBotaoInstalar();
+  }
+
+  // ── Service Worker: regista e ouve progresso ───────────────────────────
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+    navigator.serviceWorker.addEventListener("message", e => {
+      const { type, downloaded, total } = e.data || {};
+      const prog  = document.getElementById("install-progress");
+      const bar   = document.getElementById("ip-bar");
+      const pct   = document.getElementById("ip-pct");
+      const txt   = document.getElementById("ip-txt");
+
+      if (type === "TILES_PROGRESS" && prog) {
+        prog.style.display = "flex";
+        const p = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+        if (bar) bar.style.width = p + "%";
+        if (pct) pct.textContent = p + "%";
+        if (txt) txt.textContent = `Baixando mapa offline… ${downloaded} / ${total} tiles`;
+      }
+      if (type === "TILES_CACHED" && prog) {
+        if (bar) bar.style.width = "100%";
+        if (pct) pct.textContent = "100%";
+        if (txt) txt.textContent = "✅ Mapa offline pronto! App funciona sem internet.";
+        localStorage.setItem("tiles_cached", "true");
+        setTimeout(() => { prog.style.display = "none"; }, 4000);
+      }
+    });
+  }
+
+  // ── Botão "Instalar App" ───────────────────────────────────────────────
+  async function instalarApp() {
+    const btn = document.getElementById("btn-instalar");
+    btn.disabled = true;
+    btn.textContent = "⏳ Instalando…";
+
+    // 1. Baixar e guardar token de combatente para uso offline
+    if (navigator.onLine) {
+      try {
+        const r = await fetch("/auth/combatente", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+        const data = await r.json();
+        if (data.token) {
+          localStorage.setItem("combatente_token_offline", data.token);
+        }
+      } catch (_) {}
+    }
+
+    // 2. Ordenar ao SW que inicie o download dos tiles agora
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sw = reg && (reg.active || reg.installing || reg.waiting);
+      if (sw) sw.postMessage({ type: "START_TILE_DOWNLOAD" });
+    } catch (_) {}
+
+    // 3. Acionar prompt de instalação PWA
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      if (outcome === "accepted") {
+        localStorage.setItem("app_installed", "true");
+        document.getElementById("install-section").style.display = "none";
+        return; // barra de progresso continuará visível via SW messages
+      }
+    } else {
+      // iOS ou já instalado: marca como instalado e inicia download
+      localStorage.setItem("app_installed", "true");
+      document.getElementById("install-section").style.display = "none";
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = "📲 Instalar App";
+  }
+
+  // ── Navegação de telas ─────────────────────────────────────────────────
   function mostrarEquipes() {
     document.getElementById("tela-perfil").style.display = "none";
     document.getElementById("tela-equipes").style.display = "block";
     document.getElementById("error-msg").style.display = "none";
   }
-
   function voltarPerfil() {
     document.getElementById("tela-equipes").style.display = "none";
     document.getElementById("tela-perfil").style.display = "block";
     document.getElementById("error-msg").style.display = "none";
   }
-
   function selecionarEquipe(equipe) {
     equipeSelecionada = equipe;
     document.getElementById("equipe-selecionada-label").textContent = "Equipe: " + equipe;
@@ -105,76 +270,73 @@
     document.getElementById("error-msg").style.display = "none";
     setTimeout(() => document.getElementById("senha-gestor").focus(), 100);
   }
-
   function voltarEquipes() {
     document.getElementById("tela-senha").style.display = "none";
     document.getElementById("tela-equipes").style.display = "block";
     document.getElementById("error-msg").style.display = "none";
   }
 
+  // ── Entrar como Combatente ─────────────────────────────────────────────
   async function entrarCombatente() {
-    // Se já tem token válido (ex: sessão offline anterior), usa direto
-    const tokenExistente = localStorage.getItem("token");
-    const roleExistente  = localStorage.getItem("role");
-    if (tokenExistente && roleExistente === "combatente") {
-      window.location.href = "/";
-      return;
-    }
+    const errorEl = document.getElementById("error-msg");
+    errorEl.style.display = "none";
 
+    // Offline: usa token guardado na instalação
     if (!navigator.onLine) {
-      const errorEl = document.getElementById("error-msg");
-      errorEl.textContent = "📴 Sem conexão. Faça login online pelo menos uma vez para usar offline.";
+      const tokenOffline = localStorage.getItem("combatente_token_offline");
+      if (tokenOffline) {
+        localStorage.setItem("token", tokenOffline);
+        localStorage.setItem("role", "combatente");
+        localStorage.setItem("team", "Combatente");
+        window.location.href = "/";
+        return;
+      }
+      errorEl.textContent = "📴 Sem internet. Toque em 'Instalar App' com conexão primeiro para habilitar o uso offline.";
       errorEl.style.display = "block";
       return;
     }
 
+    // Online: busca token fresco no servidor
     try {
-      const r = await fetch("/auth/combatente", { method: "POST", headers: { "Content-Type": "application/json" } });
+      const r = await fetch("/auth/combatente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
       const data = await r.json();
-      if (!data.token) { alert("Erro ao autenticar. Tente novamente."); return; }
+      if (!data.token) { errorEl.textContent = "Erro ao autenticar."; errorEl.style.display = "block"; return; }
+      // Guarda também como token offline para uso futuro sem internet
       localStorage.setItem("token", data.token);
+      localStorage.setItem("combatente_token_offline", data.token);
       localStorage.setItem("role", "combatente");
       localStorage.setItem("team", "Combatente");
       window.location.href = "/";
-    } catch (e) {
-      alert("Sem conexão com o servidor. Verifique sua internet e tente novamente.");
+    } catch (_) {
+      // Tenta token offline como fallback
+      const tokenOffline = localStorage.getItem("combatente_token_offline");
+      if (tokenOffline) {
+        localStorage.setItem("token", tokenOffline);
+        localStorage.setItem("role", "combatente");
+        localStorage.setItem("team", "Combatente");
+        window.location.href = "/";
+        return;
+      }
+      errorEl.textContent = "Sem conexão com o servidor.";
+      errorEl.style.display = "block";
     }
   }
 
-  // Regista o service worker e ouve progresso de instalação do mapa offline
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").then(reg => {
-      // Se já existe um SW activo, dispara pré-cache agora
-    }).catch(() => {});
-
-    navigator.serviceWorker.addEventListener("message", e => {
-      const { type, downloaded, total } = e.data || {};
-      const banner = document.getElementById("tiles-progress-banner");
-      const bar    = document.getElementById("tiles-progress-bar");
-      const pct    = document.getElementById("tiles-progress-pct");
-      const txt    = document.getElementById("tiles-progress-text");
-
-      if (type === "TILES_PROGRESS" && banner) {
-        banner.style.display = "flex";
-        const p = total > 0 ? Math.round((downloaded / total) * 100) : 0;
-        if (bar) bar.style.width = p + "%";
-        if (pct) pct.textContent = p + "%";
-        if (txt) txt.textContent = `Instalando mapa offline… ${downloaded} / ${total} tiles`;
-      }
-      if (type === "TILES_CACHED" && banner) {
-        if (bar) bar.style.width = "100%";
-        if (pct) pct.textContent = "100%";
-        if (txt) txt.textContent = "✅ Mapa offline pronto – pode usar sem internet!";
-        setTimeout(() => { banner.style.display = "none"; }, 4000);
-      }
-    });
-  }
-
+  // ── Entrar como Gestor ─────────────────────────────────────────────────
   async function entrarGestor() {
-    const senha = document.getElementById("senha-gestor").value;
+    const senha   = document.getElementById("senha-gestor").value;
     const errorEl = document.getElementById("error-msg");
     errorEl.style.display = "none";
     if (!senha) { errorEl.textContent = "Digite a senha."; errorEl.style.display = "block"; return; }
+
+    if (!navigator.onLine) {
+      errorEl.textContent = "📴 Gestor precisa de conexão para entrar.";
+      errorEl.style.display = "block";
+      return;
+    }
 
     try {
       const r = await fetch("/auth/gestor", {
@@ -188,7 +350,7 @@
       localStorage.setItem("role", "gestor");
       localStorage.setItem("team", equipeSelecionada);
       window.location.href = "/";
-    } catch (e) {
+    } catch (_) {
       errorEl.textContent = "Sem conexão com o servidor.";
       errorEl.style.display = "block";
     }

@@ -22,13 +22,19 @@ function atualizarBadgeEquipe() {
 atualizarBadgeEquipe();
 
 function logout() {
+  // Mantém token offline e flag de instalação para o app continuar a funcionar sem internet
+  const tokenOffline = localStorage.getItem("combatente_token_offline");
+  const installed    = localStorage.getItem("app_installed");
+  const tilesCached  = localStorage.getItem("tiles_cached");
   localStorage.clear();
+  if (tokenOffline) localStorage.setItem("combatente_token_offline", tokenOffline);
+  if (installed)    localStorage.setItem("app_installed", installed);
+  if (tilesCached)  localStorage.setItem("tiles_cached", tilesCached);
   window.location.href = "/login.html";
 }
 
 function voltarInicio() {
-  localStorage.clear();
-  window.location.href = "/login.html";
+  logout();
 }
 
 // ==================== TABS ====================

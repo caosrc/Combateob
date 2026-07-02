@@ -114,6 +114,13 @@ async function preloadOuroBrancoTiles() {
   await broadcast({ type: "TILES_CACHED", region: "Ouro Branco 40km", total });
 }
 
+// ──── MESSAGE: permite disparar o download de tiles sob demanda ──────────────
+self.addEventListener("message", e => {
+  if (e.data && e.data.type === "START_TILE_DOWNLOAD") {
+    preloadOuroBrancoTiles();
+  }
+});
+
 // ──── INSTALL: cache do shell do app ────────────────────────────────────────
 self.addEventListener("install", e => {
   e.waitUntil(
