@@ -277,52 +277,47 @@
   }
 
   // ── Entrar como Combatente ─────────────────────────────────────────────
+  // O service worker intercepta este fetch e serve do cache quando offline.
   async function entrarCombatente() {
     const errorEl = document.getElementById("error-msg");
     errorEl.style.display = "none";
 
-    // Offline: usa token guardado na instalação
-    if (!navigator.onLine) {
-      const tokenOffline = localStorage.getItem("combatente_token_offline");
-      if (tokenOffline) {
-        localStorage.setItem("token", tokenOffline);
-        localStorage.setItem("role", "combatente");
-        localStorage.setItem("team", "Combatente");
-        window.location.href = "/";
-        return;
-      }
-      errorEl.textContent = "📴 Sem internet. Toque em 'Instalar App' com conexão primeiro para habilitar o uso offline.";
-      errorEl.style.display = "block";
-      return;
-    }
-
-    // Online: busca token fresco no servidor
     try {
       const r = await fetch("/auth/combatente", {
         method: "POST",
         headers: { "Content-Type": "application/json" }
       });
       const data = await r.json();
-      if (!data.token) { errorEl.textContent = "Erro ao autenticar."; errorEl.style.display = "block"; return; }
-      // Guarda também como token offline para uso futuro sem internet
+
+      if (data.error === "offline_no_cache") {
+        errorEl.textContent = "📴 Sem conexão. Abra o app com internet pelo menos uma vez para habilitar o uso offline.";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      if (!data.token) {
+        errorEl.textContent = "Erro ao autenticar. Tente novamente.";
+        errorEl.style.display = "block";
+        return;
+      }
+
       localStorage.setItem("token", data.token);
-      localStorage.setItem("combatente_token_offline", data.token);
       localStorage.setItem("role", "combatente");
       localStorage.setItem("team", "Combatente");
       window.location.href = "/";
     } catch (_) {
-      // Tenta token offline como fallback
-      const tokenOffline = localStorage.getItem("combatente_token_offline");
-      if (tokenOffline) {
-        localStorage.setItem("token", tokenOffline);
-        localStorage.setItem("role", "combatente");
-        localStorage.setItem("team", "Combatente");
-        window.location.href = "/";
-        return;
-      }
-      errorEl.textContent = "Sem conexão com o servidor.";
+      errorEl.textContent = "Erro inesperado. Tente novamente.";
       errorEl.style.display = "block";
     }
+  }
+
+  // ── Pré-aquece o cache do token de combatente na abertura da página ────
+  // Garante que o token fica guardado no SW logo na primeira visita online.
+  if ("serviceWorker" in navigator) {
+    fetch("/auth/combatente", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    }).catch(() => {});
   }
 
   // ── Entrar como Gestor ─────────────────────────────────────────────────

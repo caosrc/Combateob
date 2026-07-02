@@ -176,13 +176,54 @@ self.addEventListener("message", e => {
   }
 });
 
+// ─── Cache de auth do combatente (POST) ─────────────────────────────────────
+const AUTH_CACHE = "fogo-branco-auth-v1";
+
+async function handleCombatenteAuth(request) {
+  // Tenta o servidor primeiro
+  try {
+    const res = await fetch(request.clone());
+    if (res.ok) {
+      const data = await res.clone().json();
+      if (data.token) {
+        // Guarda o token em cache para uso offline
+        const c = await caches.open(AUTH_CACHE);
+        await c.put(
+          new Request("/__combatente_token__"),
+          new Response(JSON.stringify(data), {
+            headers: { "Content-Type": "application/json" }
+          })
+        );
+      }
+      return res;
+    }
+  } catch (_) {}
+
+  // Servidor inacessível – serve o token guardado em cache
+  const c = await caches.open(AUTH_CACHE);
+  const cached = await c.match("/__combatente_token__");
+  if (cached) return cached.clone();
+
+  // Sem cache ainda – devolve erro claro
+  return new Response(
+    JSON.stringify({ error: "offline_no_cache" }),
+    { status: 503, headers: { "Content-Type": "application/json" } }
+  );
+}
+
 // ─── FETCH: serve cache → rede ───────────────────────────────────────────────
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
-
   const url = e.request.url;
 
-  // Rotas de API – sempre vão para a rede
+  // Intercepta POST /auth/combatente para funcionar offline
+  if (e.request.method === "POST" && url.includes("/auth/combatente")) {
+    e.respondWith(handleCombatenteAuth(e.request));
+    return;
+  }
+
+  if (e.request.method !== "GET") return;
+
+  // Rotas de API que precisam sempre de rede (exceto combatente já tratado acima)
   if (
     url.includes("/auth/") || url.includes("/dashboard") ||
     url.includes("/fire")  || url.includes("/sync")      ||
