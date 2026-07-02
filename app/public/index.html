@@ -30,6 +30,18 @@
   <button class="pwa-btn-close" onclick="fecharBannerPWA()">✕</button>
 </div>
 
+<!-- BANNER PROGRESSO MAPA OFFLINE -->
+<div id="tiles-progress-banner" style="display:none; background:#1a3a5c; color:#fff; font-size:12px; padding:6px 14px; display:none; align-items:center; gap:10px; position:relative; z-index:9999;">
+  <span>📥</span>
+  <div style="flex:1;">
+    <div id="tiles-progress-text">Instalando mapa offline…</div>
+    <div style="background:rgba(255,255,255,0.25); border-radius:4px; height:5px; margin-top:3px; overflow:hidden;">
+      <div id="tiles-progress-bar" style="background:#4fc3f7; height:100%; width:0%; transition:width 0.3s;"></div>
+    </div>
+  </div>
+  <span id="tiles-progress-pct" style="font-weight:700; min-width:36px; text-align:right;">0%</span>
+</div>
+
 <!-- HEADER -->
 <header class="app-header">
   <div class="header-brand">
@@ -38,7 +50,7 @@
   </div>
   <div class="header-right">
     <span class="user-badge" id="user-badge">–</span>
-    <button class="btn-icon" onclick="logout()" title="Sair">⏻</button>
+    <button class="btn-icon" onclick="voltarInicio()" title="Tela inicial" style="font-size:18px; margin-right:2px;">🏠</button>
   </div>
 </header>
 

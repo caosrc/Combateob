@@ -1,15 +1,16 @@
-const CACHE_NAME = "fogo-branco-v1";
-const TILE_CACHE = "fogo-branco-tiles-v1";
+const CACHE_NAME = "fogo-branco-v2";
+const TILE_CACHE = "fogo-branco-tiles-v2";
 
 // Ouro Branco, MG – coordenadas do centro e raio offline
 const OB_LAT = -20.52;
 const OB_LNG = -43.69;
-const OB_RADIUS_KM = 20;
+const OB_RADIUS_KM = 40;
 
 const APP_URLS = [
   "/",
   "/index.html",
   "/login.html",
+  "/dashboard.html",
   "/app.js",
   "/db.js",
   "/style.css",
@@ -40,7 +41,13 @@ function normalizeTileUrl(url) {
   return url.replace(/https?:\/\/[abc]\.tile\.openstreetmap\.org/, "https://tile.openstreetmap.org");
 }
 
-// ──── Pré-carrega tiles de Ouro Branco em segundo plano ─────────────────────
+// ──── Envia mensagem para todas as abas abertas ──────────────────────────────
+async function broadcast(msg) {
+  const clients = await self.clients.matchAll({ includeUncontrolled: true });
+  clients.forEach(c => c.postMessage(msg));
+}
+
+// ──── Pré-carrega tiles de Ouro Branco (40 km) em segundo plano ─────────────
 async function preloadOuroBrancoTiles() {
   const latOff = OB_RADIUS_KM / 111.0;
   const lngOff = OB_RADIUS_KM / (111.0 * Math.cos(OB_LAT * Math.PI / 180));
@@ -53,9 +60,10 @@ async function preloadOuroBrancoTiles() {
   let tileCache;
   try {
     tileCache = await caches.open(TILE_CACHE);
-  } catch(_) { return; }
+  } catch (_) { return; }
 
-  // OSM: zoom 10 a 14  |  Satélite: zoom 10 a 13
+  // Monta lista completa de tiles a baixar
+  const tilesToFetch = [];
   for (let z = 10; z <= 14; z++) {
     const xMin = lngToTileX(west, z);
     const xMax = lngToTileX(east, z);
@@ -64,33 +72,46 @@ async function preloadOuroBrancoTiles() {
 
     for (let x = xMin; x <= xMax; x++) {
       for (let y = yMin; y <= yMax; y++) {
-
-        // ── OSM ──
-        const osmUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
-        try {
-          if (!(await tileCache.match(osmUrl))) {
-            const r = await fetch(osmUrl, { mode: "cors" });
-            if (r.ok) await tileCache.put(osmUrl, r);
-          }
-        } catch(_) {}
-
-        // ── Satélite (só até zoom 13 para economizar dados) ──
+        tilesToFetch.push({
+          url: `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+          type: "osm"
+        });
         if (z <= 13) {
-          const satUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
-          try {
-            if (!(await tileCache.match(satUrl))) {
-              const r = await fetch(satUrl);
-              if (r.ok) await tileCache.put(satUrl, r);
-            }
-          } catch(_) {}
+          tilesToFetch.push({
+            url: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+            type: "sat"
+          });
         }
       }
     }
   }
 
-  // Notifica as abas abertas que o mapa offline está pronto
-  const clients = await self.clients.matchAll({ includeUncontrolled: true });
-  clients.forEach(c => c.postMessage({ type: "TILES_CACHED", region: "Ouro Branco" }));
+  const total = tilesToFetch.length;
+  let downloaded = 0;
+
+  await broadcast({ type: "TILES_PROGRESS", downloaded: 0, total, region: "Ouro Branco 40km" });
+
+  // Baixa em lotes de 6 em paralelo para não sobrecarregar a rede
+  const BATCH = 6;
+  for (let i = 0; i < tilesToFetch.length; i += BATCH) {
+    const batch = tilesToFetch.slice(i, i + BATCH);
+    await Promise.all(batch.map(async ({ url, type }) => {
+      const cacheKey = type === "osm" ? normalizeTileUrl(url) : url;
+      try {
+        if (!(await tileCache.match(cacheKey))) {
+          const r = await fetch(url, { mode: "cors" });
+          if (r.ok) await tileCache.put(cacheKey, r);
+        }
+      } catch (_) {}
+      downloaded++;
+    }));
+
+    // Envia progresso a cada lote
+    await broadcast({ type: "TILES_PROGRESS", downloaded, total });
+  }
+
+  // Sinaliza conclusão
+  await broadcast({ type: "TILES_CACHED", region: "Ouro Branco 40km", total });
 }
 
 // ──── INSTALL: cache do shell do app ────────────────────────────────────────
@@ -153,7 +174,7 @@ self.addEventListener("fetch", e => {
           const res = await fetch(e.request);
           if (res.ok) cache.put(key, res.clone());
           return res;
-        } catch(_) {
+        } catch (_) {
           return new Response("", { status: 503, statusText: "Offline" });
         }
       })
@@ -161,7 +182,7 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // ── Shell do app → usa CACHE_NAME ──
+  // ── Shell do app → stale-while-revalidate ──
   e.respondWith(
     caches.match(e.request).then(cached => {
       const network = fetch(e.request).then(res => {

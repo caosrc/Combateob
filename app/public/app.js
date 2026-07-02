@@ -26,6 +26,11 @@ function logout() {
   window.location.href = "/login.html";
 }
 
+function voltarInicio() {
+  localStorage.clear();
+  window.location.href = "/login.html";
+}
+
 // ==================== TABS ====================
 let currentTab = "registrar";
 let mapInitialized = false;
@@ -919,7 +924,7 @@ function limparFormulario() {
 // ==================== DASHBOARD ====================
 async function loadDashboard() {
   try {
-    const res = await fetch("/dashboard");
+    const res = await fetch("/dashboard", { headers: { "Authorization": token } });
     const data = await res.json();
     document.getElementById("total-fires").textContent = data.total;
     document.getElementById("total-area").textContent = (data.areaTotal || 0).toFixed(2);
@@ -1145,6 +1150,29 @@ updateOnlineStatus();
 // ==================== SERVICE WORKER + PWA ====================
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(console.error);
+
+  // Ouve mensagens do service worker (progresso do mapa offline)
+  navigator.serviceWorker.addEventListener("message", e => {
+    const { type, downloaded, total } = e.data || {};
+    const banner = document.getElementById("tiles-progress-banner");
+    const bar    = document.getElementById("tiles-progress-bar");
+    const pct    = document.getElementById("tiles-progress-pct");
+    const txt    = document.getElementById("tiles-progress-text");
+
+    if (type === "TILES_PROGRESS" && banner) {
+      banner.style.display = "flex";
+      const p = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+      if (bar) bar.style.width = p + "%";
+      if (pct) pct.textContent = p + "%";
+      if (txt) txt.textContent = `Instalando mapa offline… ${downloaded} / ${total} tiles`;
+    }
+    if (type === "TILES_CACHED" && banner) {
+      if (bar) bar.style.width = "100%";
+      if (pct) pct.textContent = "100%";
+      if (txt) txt.textContent = "✅ Mapa offline instalado – funciona sem internet!";
+      setTimeout(() => { banner.style.display = "none"; }, 4000);
+    }
+  });
 }
 
 let _deferredInstallPrompt = null;

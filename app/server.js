@@ -815,23 +815,28 @@ app.put("/fire/:id", auth, (req, res) => {
 });
 
 // ===== SYNC OFFLINE =====
-app.post("/sync", auth, (req, res) => {
+app.post("/sync", auth, async (req, res) => {
   const { fires } = req.body;
   if (!fires || !Array.isArray(fires)) return res.json({ ok: false });
-  let count = 0;
-  fires.forEach(fire => {
+
+  const results = await Promise.all(fires.map(fire => new Promise(resolve => {
     let area = 0;
     try {
       if (fire.polygon && fire.polygon.length >= 3) {
         area = turf.area(turf.polygon([[...fire.polygon, fire.polygon[0]]])) / 10000;
       } else if (fire.data && fire.data.areaAtingida) area = parseFloat(fire.data.areaAtingida) || 0;
     } catch (e) {}
-    db.run("INSERT INTO fires (data, area, team, polygon, signature, photos, createdAt) VALUES (?,?,?,?,?,?,?)",
+    db.run(
+      "INSERT INTO fires (data, area, team, polygon, signature, photos, mapSnapshot, createdAt) VALUES (?,?,?,?,?,?,?,?)",
       [JSON.stringify(fire.data || {}), area, req.user.team, JSON.stringify(fire.polygon || []),
-       fire.signature || null, "[]", fire.createdAt || new Date().toISOString()],
-      () => count++);
-  });
-  setTimeout(() => res.json({ ok: true, synced: count }), 500);
+       fire.signature || null, JSON.stringify(fire.photos || []), fire.mapSnapshot || null,
+       fire.createdAt || new Date().toISOString()],
+      err => resolve(!err)
+    );
+  })));
+
+  const synced = results.filter(Boolean).length;
+  res.json({ ok: true, synced });
 });
 
 const PORT = process.env.PORT || 5000;
