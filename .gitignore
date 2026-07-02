@@ -8,3 +8,5 @@ app/exports/*
 .wrangler/
 .dev.vars
 dist/
+attached_assets/*.txt
+attached_assets/screenshots/
