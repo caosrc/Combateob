@@ -792,14 +792,32 @@ app.get("/export/kmz", auth, (req, res) => {
 // ===== EDITAR INCÊNDIO (apenas gestor) =====
 app.put("/fire/:id", auth, (req, res) => {
   if (req.user.role !== "gestor") return res.status(403).json({ error: "Apenas gestores podem editar registros." });
-  const { data } = req.body;
+  const { data, polygon, signature, photos, mapSnapshot } = req.body;
+
+  let area = 0;
+  if (polygon && polygon.length >= 3) {
+    try {
+      const poly = turf.polygon([[...polygon, polygon[0]]]);
+      area = turf.area(poly) / 10000;
+    } catch (e) {}
+  }
+  if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
+
   db.run(
-    "UPDATE fires SET data=? WHERE id=?",
-    [JSON.stringify(data || {}), req.params.id],
+    "UPDATE fires SET data=?, polygon=?, signature=?, photos=?, mapSnapshot=?, area=? WHERE id=?",
+    [
+      JSON.stringify(data || {}),
+      JSON.stringify(polygon || []),
+      signature || null,
+      JSON.stringify(photos || []),
+      mapSnapshot || null,
+      area,
+      req.params.id
+    ],
     function(err) {
       if (err) return res.json({ error: err.message });
       if (this.changes === 0) return res.json({ error: "Registro não encontrado." });
-      res.json({ ok: true });
+      res.json({ ok: true, area });
     }
   );
 });

@@ -55,6 +55,7 @@ function toggleSobre() {
 
 // ==================== TOGGLES ====================
 const toggleState = { local: null, uc: null, alim: null };
+let editingId = null;
 
 function setToggle(group, value) {
   toggleState[group] = value;
@@ -315,6 +316,15 @@ function abrirMapaDesenho() {
     }
     if (!gpsAtivo) toggleGPSMapa();
     iniciarDesenhoNoMapaPrincipal();
+    // Se há polígono existente (modo edição), desenha no mapa
+    if (currentPolygon && currentPolygon.length >= 3) {
+      if (!drawMainItems) { drawMainItems = new L.FeatureGroup(); mainMap.addLayer(drawMainItems); }
+      const latlngs = currentPolygon.map(([lng, lat]) => [lat, lng]);
+      const poly = L.polygon(latlngs, { color: "#ff4444", weight: 2, fillOpacity: 0.2 });
+      drawMainItems.clearLayers();
+      drawMainItems.addLayer(poly);
+      mainMap.fitBounds(poly.getBounds(), { padding: [40, 40] });
+    }
   }, 400);
 }
 
@@ -817,6 +827,32 @@ async function salvarIncendio() {
 
   const fireData = { data, polygon: currentPolygon, signature: getSignatureData(), photos: fotosCapturadas, mapSnapshot: mapSnapshotData };
 
+  // MODO EDIÇÃO: atualiza registro existente
+  if (editingId) {
+    try {
+      const res = await fetch(`/fire/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": token },
+        body: JSON.stringify(fireData)
+      });
+      const r = await res.json();
+      if (r.error) { alert("❌ Erro: " + r.error); return; }
+      closeModal();
+      alert(`✅ Registro #${editingId} atualizado!\nÁrea: ${r.area ? r.area.toFixed(4) + " ha" : "–"}`);
+      editingId = null;
+      const banner = document.getElementById("edit-mode-banner");
+      if (banner) banner.style.display = "none";
+      limparFormulario();
+      switchTab("dashboard");
+      loadDashboard();
+      if (mapInitialized) loadFiresOnMap();
+    } catch (e) {
+      alert("❌ Erro de conexão: " + e.message);
+    }
+    return;
+  }
+
+  // MODO NOVO REGISTRO
   if (navigator.onLine) {
     try {
       const res = await fetch("/fire", {
@@ -850,6 +886,9 @@ async function salvarIncendio() {
 }
 
 function limparFormulario() {
+  editingId = null;
+  const banner = document.getElementById("edit-mode-banner");
+  if (banner) banner.style.display = "none";
   fotosCapturadas = [];
   renderFotoPreview();
   nomeEquipeSelecionado = "";
@@ -902,7 +941,7 @@ async function loadDashboard() {
       const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
       const nomeEquipe = d.nomeEquipe || r.team || "–";
       const editBtn = role === "gestor"
-        ? `<button class="btn btn-sm btn-edit" onclick="abrirEditModal(${r.id})">✏️ Editar</button>`
+        ? `<button class="btn btn-sm btn-edit" onclick="editarRegistro(${r.id})">✏️ Editar</button>`
         : "";
       return `<tr>
         <td>#${r.id}</td>
@@ -922,76 +961,112 @@ async function loadDashboard() {
 // ==================== EDITAR REGISTRO (gestor) ====================
 const _editRows = {};
 
-function abrirEditModal(id) {
+function editarRegistro(id) {
+  if (role !== "gestor") return;
   const r = _editRows[id];
   if (!r) return;
-  if (role !== "gestor") return;
+
   const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
-  document.getElementById("edit-id").value = r.id;
-  document.getElementById("edit-brigadista").value = d.brigadista || "";
-  document.getElementById("edit-nomeEquipe").value = d.nomeEquipe || "";
-  document.getElementById("edit-brigadistas").value = d.brigadistas || "";
-  document.getElementById("edit-municipio").value = d.municipio || "";
-  document.getElementById("edit-localReferencia").value = d.localReferencia || "";
-  document.getElementById("edit-dataDeteccao").value = d.dataDeteccao || "";
-  document.getElementById("edit-horaDeteccao").value = d.horaDeteccao || "";
-  document.getElementById("edit-formaDeteccao").value = d.formaDeteccao || "";
-  document.getElementById("edit-nomeContato").value = d.nomeContato || "";
-  document.getElementById("edit-orgaoContato").value = d.orgaoContato || "";
-  document.getElementById("edit-telefoneContato").value = d.telefoneContato || "";
-  document.getElementById("edit-inicioData").value = d.inicioData || "";
-  document.getElementById("edit-inicioHora").value = d.inicioHora || "";
-  document.getElementById("edit-debeladoData").value = d.debeladoData || "";
-  document.getElementById("edit-debeladoHora").value = d.debeladoHora || "";
-  document.getElementById("edit-pessoal").value = d.pessoal || "";
-  document.getElementById("edit-veiculos").value = d.veiculos || "";
-  document.getElementById("edit-causa").value = d.causa || "";
-  document.getElementById("edit-descricao").value = d.descricao || "";
-  document.getElementById("edit-modal").classList.add("active");
-}
+  const poly = (() => { try { return JSON.parse(r.polygon || "[]"); } catch { return []; } })();
+  const photos = (() => { try { return JSON.parse(r.photos || "[]"); } catch { return []; } })();
 
-function closeEditModal() {
-  document.getElementById("edit-modal").classList.remove("active");
-}
+  // Limpar formulário primeiro (reseta tudo)
+  limparFormulario();
+  editingId = id;
 
-async function salvarEdicao() {
-  const id = document.getElementById("edit-id").value;
-  const novaData = {
-    brigadista: document.getElementById("edit-brigadista").value.trim(),
-    nomeEquipe: document.getElementById("edit-nomeEquipe").value.trim(),
-    brigadistas: document.getElementById("edit-brigadistas").value.trim(),
-    municipio: document.getElementById("edit-municipio").value.trim(),
-    localReferencia: document.getElementById("edit-localReferencia").value.trim(),
-    dataDeteccao: document.getElementById("edit-dataDeteccao").value,
-    horaDeteccao: document.getElementById("edit-horaDeteccao").value,
-    formaDeteccao: document.getElementById("edit-formaDeteccao").value.trim(),
-    nomeContato: document.getElementById("edit-nomeContato").value.trim(),
-    orgaoContato: document.getElementById("edit-orgaoContato").value.trim(),
-    telefoneContato: document.getElementById("edit-telefoneContato").value.trim(),
-    inicioData: document.getElementById("edit-inicioData").value,
-    inicioHora: document.getElementById("edit-inicioHora").value,
-    debeladoData: document.getElementById("edit-debeladoData").value,
-    debeladoHora: document.getElementById("edit-debeladoHora").value,
-    pessoal: document.getElementById("edit-pessoal").value.trim(),
-    veiculos: document.getElementById("edit-veiculos").value.trim(),
-    causa: document.getElementById("edit-causa").value,
-    descricao: document.getElementById("edit-descricao").value.trim()
-  };
+  // Campos de texto
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
+  setVal("brigadista", d.brigadista);
+  setVal("brigadistas", d.brigadistas);
+  setVal("localReferencia", d.localReferencia);
+  setVal("nomeContato", d.nomeContato);
+  setVal("orgaoContato", d.orgaoContato);
+  setVal("telefoneContato", d.telefoneContato);
+  setVal("dataDeteccao", d.dataDeteccao);
+  setVal("horaDeteccao", d.horaDeteccao);
+  setVal("inicioData", d.inicioData);
+  setVal("inicioHora", d.inicioHora);
+  setVal("debeladoData", d.debeladoData);
+  setVal("debeladoHora", d.debeladoHora);
+  setVal("pessoal", d.pessoal);
+  setVal("veiculos", d.veiculos);
+  setVal("descricao", d.descricao);
+  setVal("causa", d.causa);
 
-  try {
-    const res = await fetch(`/fire/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "Authorization": token },
-      body: JSON.stringify({ data: novaData })
+  // Município
+  if (d.municipio) setMunicipio(d.municipio);
+
+  // Nome da Equipe (chips)
+  if (d.nomeEquipe) {
+    const chips = document.querySelectorAll("#nomeEquipe-group .chip");
+    let found = false;
+    chips.forEach(chip => {
+      if (chip.dataset.equipe === d.nomeEquipe) {
+        selecionarEquipeForm(chip, d.nomeEquipe);
+        found = true;
+      }
     });
-    const r = await res.json();
-    if (r.error) { alert("Erro ao salvar: " + r.error); return; }
-    closeEditModal();
-    alert("✅ Registro atualizado com sucesso!");
-    loadDashboard();
-  } catch (e) {
-    alert("Erro de conexão: " + e.message);
+    if (!found) {
+      const outrosChip = Array.from(chips).find(c => c.dataset.equipe === "Outros");
+      if (outrosChip) {
+        selecionarEquipeForm(outrosChip, "Outros");
+        document.getElementById("nomeEquipeOutros").value = d.nomeEquipe;
+        document.getElementById("nomeEquipeOutros").style.display = "block";
+      }
+    }
   }
+
+  // Forma de detecção (chips multi)
+  if (d.formaDeteccao) {
+    const partes = d.formaDeteccao.split(",").map(s => s.trim());
+    document.querySelectorAll("#formaDeteccao-group .chip").forEach(chip => {
+      if (partes.some(p => p.startsWith(chip.dataset.value || chip.textContent.trim()))) {
+        toggleChip(chip, chip.dataset.value || chip.textContent.trim());
+      }
+    });
+  }
+
+  // Toggles (uc, alimentacao)
+  if (d.uc) setToggle("uc", d.uc);
+  if (d.alimentacao) setToggle("alim", d.alimentacao);
+
+  // Coordenadas GPS
+  if (d.lat && d.lng) {
+    coordCapturada = { lat: d.lat, lng: d.lng, coordStr: d.coordStr || "" };
+    const gpsRes = document.getElementById("gps-coord-result");
+    if (gpsRes) {
+      gpsRes.style.display = "block";
+      gpsRes.innerHTML = `✅ ${d.coordStr || (d.lat + ", " + d.lng)}`;
+    }
+  }
+
+  // Fotos existentes
+  if (photos.length > 0) {
+    fotosCapturadas = [...photos];
+    renderFotoPreview();
+  }
+
+  // Polígono existente
+  if (poly.length >= 3) {
+    currentPolygon = poly;
+    atualizarAreaDisplay();
+  }
+
+  // Banner de edição
+  const banner = document.getElementById("edit-mode-banner");
+  const idSpan = document.getElementById("edit-mode-id");
+  if (banner) { banner.style.display = "flex"; }
+  if (idSpan) { idSpan.textContent = `#${id}`; }
+
+  // Ir para aba Registrar
+  switchTab("registrar");
+  window.scrollTo(0, 0);
+}
+
+function cancelarEdicao() {
+  editingId = null;
+  limparFormulario();
+  switchTab("dashboard");
 }
 
 // ==================== EXPORTS ====================

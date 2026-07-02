@@ -45,6 +45,13 @@
 <!-- CONTEÚDO DAS ABAS -->
 <div class="tab-content" id="tab-registrar">
 
+  <!-- BANNER MODO EDIÇÃO -->
+  <div id="edit-mode-banner" style="display:none; background:#fff3cd; border:1.5px solid #ffc107; border-radius:10px; padding:10px 14px; margin-bottom:10px; align-items:center; gap:10px;">
+    <span style="font-size:18px;">✏️</span>
+    <span style="flex:1; font-size:13px; font-weight:600; color:#856404;">Editando registro <span id="edit-mode-id"></span></span>
+    <button onclick="cancelarEdicao()" style="background:#fff; border:1.5px solid #ffc107; color:#856404; border-radius:8px; padding:4px 12px; font-family:inherit; cursor:pointer; font-size:12px; font-weight:700;">✕ Cancelar</button>
+  </div>
+
   <!-- STATUS ONLINE/OFFLINE -->
   <div class="status-strip">
     <span class="dot dot-green" id="online-dot"></span>
@@ -453,52 +460,6 @@
   </div>
 </div>
 
-<!-- MODAL EDITAR REGISTRO (apenas gestor) -->
-<div class="modal-overlay" id="edit-modal">
-  <div class="modal modal-edit">
-    <h2>✏️ Editar Registro</h2>
-    <input type="hidden" id="edit-id">
-    <div class="edit-scroll">
-      <div class="form-group"><label>Brigadista Responsável</label><input type="text" id="edit-brigadista"></div>
-      <div class="form-group"><label>Nome da Equipe</label><input type="text" id="edit-nomeEquipe"></div>
-      <div class="form-group"><label>Brigadistas da Equipe</label><textarea id="edit-brigadistas" rows="2"></textarea></div>
-      <div class="form-group"><label>Município</label><input type="text" id="edit-municipio"></div>
-      <div class="form-group"><label>Local de Referência</label><input type="text" id="edit-localReferencia"></div>
-      <div class="form-group"><label>Data de Detecção</label><input type="date" id="edit-dataDeteccao"></div>
-      <div class="form-group"><label>Hora de Detecção</label><input type="time" id="edit-horaDeteccao"></div>
-      <div class="form-group"><label>Forma de Detecção</label><input type="text" id="edit-formaDeteccao"></div>
-      <div class="form-group"><label>Nome do Contato</label><input type="text" id="edit-nomeContato"></div>
-      <div class="form-group"><label>Órgão / Função</label><input type="text" id="edit-orgaoContato"></div>
-      <div class="form-group"><label>Telefone</label><input type="tel" id="edit-telefoneContato"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Início – Data</label><input type="date" id="edit-inicioData"></div>
-        <div class="form-group"><label>Início – Hora</label><input type="time" id="edit-inicioHora"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Debelado – Data</label><input type="date" id="edit-debeladoData"></div>
-        <div class="form-group"><label>Debelado – Hora</label><input type="time" id="edit-debeladoHora"></div>
-      </div>
-      <div class="form-group"><label>Pessoal Mobilizado</label><input type="text" id="edit-pessoal"></div>
-      <div class="form-group"><label>Veículos Mobilizados</label><input type="text" id="edit-veiculos"></div>
-      <div class="form-group">
-        <label>Causa do Incêndio</label>
-        <select id="edit-causa">
-          <option value="">Selecione...</option>
-          <option value="Raio">⚡ Raio</option>
-          <option value="Queima Controlada">🔥 Queima Controlada</option>
-          <option value="Acidente">⚠️ Acidente</option>
-          <option value="Criminoso (Doloso)">🚨 Criminoso (Doloso)</option>
-          <option value="Desconhecida">❓ Desconhecida</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Descrição da Ocorrência</label><textarea id="edit-descricao" rows="3"></textarea></div>
-    </div>
-    <div style="display:flex; gap:10px; margin-top:16px;">
-      <button class="btn btn-secondary" onclick="closeEditModal()" style="flex:1">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarEdicao()" style="flex:1">💾 Salvar Alterações</button>
-    </div>
-  </div>
-</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
