@@ -898,10 +898,11 @@ async function loadDashboard() {
       return;
     }
     tbody.innerHTML = data.rows.map(r => {
+      _editRows[r.id] = r;
       const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
       const nomeEquipe = d.nomeEquipe || r.team || "–";
       const editBtn = role === "gestor"
-        ? `<button class="btn btn-sm btn-edit" onclick='abrirEditModal(${JSON.stringify(r)})'>✏️ Editar</button>`
+        ? `<button class="btn btn-sm btn-edit" onclick="abrirEditModal(${r.id})">✏️ Editar</button>`
         : "";
       return `<tr>
         <td>#${r.id}</td>
@@ -919,7 +920,11 @@ async function loadDashboard() {
 }
 
 // ==================== EDITAR REGISTRO (gestor) ====================
-function abrirEditModal(r) {
+const _editRows = {};
+
+function abrirEditModal(id) {
+  const r = _editRows[id];
+  if (!r) return;
   if (role !== "gestor") return;
   const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
   document.getElementById("edit-id").value = r.id;
