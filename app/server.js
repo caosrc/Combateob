@@ -178,7 +178,7 @@ app.get("/report/:id", (req, res) => {
     doc.fontSize(7).fillColor("#ffcccc").font("Helvetica")
       .text("SISTEMA DE REGISTRO DE OCORRÊNCIAS", ML, 22, { width: PW, align: "center" });
     doc.fontSize(18).fillColor("#ffffff").font("Helvetica-Bold")
-      .text("RELATÓRIO DE INCÊNDIO", ML, 34, { width: PW, align: "center" });
+      .text("RELATÓRIO DE INCÊNDIO", ML, 40, { width: PW, align: "center" });
     doc.fontSize(8).fillColor("#ffdddd").font("Helvetica")
       .text("Brigada de Prevenção e Combate a Incêndios Florestais", ML, 60, { width: PW, align: "center" });
 
@@ -258,7 +258,6 @@ app.get("/report/:id", (req, res) => {
       { label: "Município", value: val(d.municipio) },
       { label: "Coordenadas GPS", value: val(d.coordStr) },
       { label: "Local de Referência", value: val(d.localReferencia), wide: true },
-      { label: "Localização (Entorno/Interno)", value: val(d.local) },
       { label: "Unidade de Conservação (UC)", value: d.uc ? (d.uc === "sim" ? "Sim" : "Não") : "–" },
     ]);
 
