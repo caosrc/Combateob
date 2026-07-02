@@ -3,80 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login – Brigada Ouro</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <title>Fogo Branco</title>
+  <link rel="stylesheet" href="style.css?v=10">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Brigada Ouro">
+  <meta name="apple-mobile-web-app-title" content="Fogo Branco">
   <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
 <div class="auth-container">
   <div class="auth-box">
-    <div class="logo"><img src="icon-192.png" alt="Brigada Ouro" class="login-logo"></div>
-    <h1>Brigada Ouro</h1>
+    <div class="logo"><img src="icon-192.png" alt="Fogo Branco" class="login-logo"></div>
+    <h1>Fogo Branco</h1>
     <p>Sistema de Combate a Incêndios Florestais</p>
 
     <div class="error-msg" id="error-msg"></div>
 
-    <div class="form-group">
-      <label>Usuário</label>
-      <input type="text" id="username" placeholder="Digite o usuário" autocomplete="username">
+    <!-- TELA 1: Escolha de perfil -->
+    <div id="tela-perfil">
+      <button class="btn-perfil btn-combatente" onclick="entrarCombatente()">
+        <span class="perfil-icon">🪖</span>
+        <span class="perfil-label">Combatente</span>
+        <span class="perfil-sub">Registrar e Mapa</span>
+      </button>
+      <button class="btn-perfil btn-gestor" onclick="mostrarEquipes()">
+        <span class="perfil-icon">📋</span>
+        <span class="perfil-label">Gestor</span>
+        <span class="perfil-sub">Acesso completo</span>
+      </button>
     </div>
-    <div class="form-group">
-      <label>Senha</label>
-      <input type="password" id="password" placeholder="Digite a senha" autocomplete="current-password">
-    </div>
-    <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
 
-    <p style="margin-top:20px; font-size:12px; color:#666;">
-      Demo: admin / admin123 &nbsp;|&nbsp; brigada1 / brigada123
-    </p>
+    <!-- TELA 2: Escolha da equipe (gestor) -->
+    <div id="tela-equipes" style="display:none;">
+      <p style="font-size:13px; color:#666; margin-bottom:16px;">Selecione sua equipe:</p>
+      <div class="equipes-grid">
+        <button class="btn-equipe" onclick="selecionarEquipe('Defesa Civil')">Defesa Civil</button>
+        <button class="btn-equipe" onclick="selecionarEquipe('IEF')">IEF</button>
+        <button class="btn-equipe" onclick="selecionarEquipe('Carcará')">Carcará</button>
+        <button class="btn-equipe" onclick="selecionarEquipe('AMDA Gerdau')">AMDA Gerdau</button>
+        <button class="btn-equipe" onclick="selecionarEquipe('AMDA IEF')">AMDA IEF</button>
+        <button class="btn-equipe" onclick="selecionarEquipe('CBMMG')">CBMMG</button>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:14px; width:100%; font-size:13px;" onclick="voltarPerfil()">← Voltar</button>
+    </div>
+
+    <!-- TELA 3: Senha da equipe -->
+    <div id="tela-senha" style="display:none;">
+      <p style="font-size:14px; color:#333; margin-bottom:6px; font-weight:600;" id="equipe-selecionada-label"></p>
+      <p style="font-size:13px; color:#666; margin-bottom:16px;">Digite a senha de acesso:</p>
+      <div class="form-group">
+        <input type="password" id="senha-gestor" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter') entrarGestor()">
+      </div>
+      <button class="btn btn-primary" onclick="entrarGestor()" style="margin-bottom:10px;">Entrar como Gestor</button>
+      <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="voltarEquipes()">← Voltar</button>
+    </div>
+
   </div>
 </div>
 
 <script>
-  if (localStorage.getItem("token")) {
+  if (localStorage.getItem("role")) {
     window.location.href = "/";
   }
 
-  document.addEventListener("keydown", e => {
-    if (e.key === "Enter") doLogin();
-  });
+  let equipeSelecionada = "";
 
-  async function doLogin() {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
-    const errorEl = document.getElementById("error-msg");
+  function mostrarEquipes() {
+    document.getElementById("tela-perfil").style.display = "none";
+    document.getElementById("tela-equipes").style.display = "block";
+    document.getElementById("error-msg").style.display = "none";
+  }
 
-    errorEl.style.display = "none";
+  function voltarPerfil() {
+    document.getElementById("tela-equipes").style.display = "none";
+    document.getElementById("tela-perfil").style.display = "block";
+    document.getElementById("error-msg").style.display = "none";
+  }
 
-    if (!username || !password) {
-      errorEl.textContent = "Preencha usuário e senha.";
-      errorEl.style.display = "block";
-      return;
-    }
+  function selecionarEquipe(equipe) {
+    equipeSelecionada = equipe;
+    document.getElementById("equipe-selecionada-label").textContent = "Equipe: " + equipe;
+    document.getElementById("tela-equipes").style.display = "none";
+    document.getElementById("tela-senha").style.display = "block";
+    document.getElementById("senha-gestor").value = "";
+    document.getElementById("error-msg").style.display = "none";
+    setTimeout(() => document.getElementById("senha-gestor").focus(), 100);
+  }
 
+  function voltarEquipes() {
+    document.getElementById("tela-senha").style.display = "none";
+    document.getElementById("tela-equipes").style.display = "block";
+    document.getElementById("error-msg").style.display = "none";
+  }
+
+  async function entrarCombatente() {
     try {
-      const res = await fetch("/login", {
+      const res = await fetch("/auth/combatente", { method: "POST", headers: { "Content-Type": "application/json" } });
+      const data = await res.json();
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", "combatente");
+      localStorage.setItem("team", "Combatente");
+      window.location.href = "/";
+    } catch (e) {
+      const err = document.getElementById("error-msg");
+      err.textContent = "Erro de conexão. Verifique a rede.";
+      err.style.display = "block";
+    }
+  }
+
+  async function entrarGestor() {
+    const senha = document.getElementById("senha-gestor").value;
+    const errorEl = document.getElementById("error-msg");
+    errorEl.style.display = "none";
+    if (!senha) { errorEl.textContent = "Digite a senha."; errorEl.style.display = "block"; return; }
+    try {
+      const res = await fetch("/auth/gestor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ equipe: equipeSelecionada, senha })
       });
       const data = await res.json();
-
-      if (data.error) {
-        errorEl.textContent = data.error;
-        errorEl.style.display = "block";
-        return;
-      }
-
+      if (data.error) { errorEl.textContent = data.error; errorEl.style.display = "block"; return; }
       localStorage.setItem("token", data.token);
-      localStorage.setItem("team", data.team);
-      localStorage.setItem("username", data.username);
+      localStorage.setItem("role", "gestor");
+      localStorage.setItem("team", equipeSelecionada);
       window.location.href = "/";
     } catch (e) {
       errorEl.textContent = "Erro de conexão. Verifique a rede.";

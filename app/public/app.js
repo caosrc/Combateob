@@ -1,15 +1,22 @@
 // ==================== AUTH ====================
+const role = localStorage.getItem("role");
 const token = localStorage.getItem("token");
-if (!token) window.location.href = "/login.html";
+
+if (!role || !token) {
+  window.location.href = "/login.html";
+}
+
+// Controla visibilidade do dashboard (só gestor)
+if (role === "gestor") {
+  const navDash = document.getElementById("nav-dashboard");
+  if (navDash) navDash.style.display = "flex";
+}
 
 function atualizarBadgeEquipe() {
-  const nomeEquipe = document.getElementById("nomeEquipe");
   const badge = document.getElementById("user-badge");
-  if (nomeEquipe && nomeEquipe.value.trim()) {
-    badge.textContent = "Equipe " + nomeEquipe.value.trim();
-  } else {
-    badge.textContent = "Equipe " + (localStorage.getItem("team") || "–");
-  }
+  const equipe = localStorage.getItem("team") || "–";
+  const roleLabel = role === "gestor" ? "Gestor" : "Combatente";
+  if (badge) badge.textContent = roleLabel + " · " + equipe;
 }
 
 atualizarBadgeEquipe();
@@ -25,19 +32,17 @@ let mapInitialized = false;
 let drawMapInitialized = false;
 
 function switchTab(tab) {
+  if (tab === "dashboard" && role !== "gestor") return;
   document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
   document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
 
   document.getElementById("tab-" + tab).style.display = "flex";
-  document.getElementById("nav-" + tab).classList.add("active");
+  const navEl = document.getElementById("nav-" + tab);
+  if (navEl) navEl.classList.add("active");
   currentTab = tab;
 
-  if (tab === "mapa") {
-    initMainMap();
-  }
-  if (tab === "dashboard") {
-    loadDashboard();
-  }
+  if (tab === "mapa") initMainMap();
+  if (tab === "dashboard") loadDashboard();
 }
 
 function toggleSobre() {
@@ -57,6 +62,34 @@ function setToggle(group, value) {
   buttons.forEach(b => b.classList.remove("active"));
   const el = document.getElementById(group + "-" + value);
   if (el) el.classList.add("active");
+}
+
+// ==================== MUNICÍPIO ====================
+let municipioSelecionado = "";
+
+function setMunicipio(mun) {
+  municipioSelecionado = mun;
+  document.querySelectorAll("[id^='mun-']").forEach(b => b.classList.remove("active"));
+  const ids = { "Ouro Branco": "mun-ourobranco", "Ouro Preto": "mun-ouropreto", "Congonhas": "mun-congonhas" };
+  const el = document.getElementById(ids[mun]);
+  if (el) el.classList.add("active");
+}
+
+// ==================== EQUIPE DO FORMULÁRIO ====================
+let nomeEquipeSelecionado = "";
+
+function selecionarEquipeForm(btn, equipe) {
+  nomeEquipeSelecionado = equipe;
+  document.querySelectorAll("#nomeEquipe-group .chip").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  const outrosInput = document.getElementById("nomeEquipeOutros");
+  if (equipe === "Outros") {
+    outrosInput.style.display = "block";
+    outrosInput.focus();
+  } else {
+    outrosInput.style.display = "none";
+    outrosInput.value = "";
+  }
 }
 
 // ==================== CHIPS DETECÇÃO ====================
@@ -237,7 +270,7 @@ async function loadFiresOnMap() {
   } catch (e) { console.log("Erro ao carregar mapa:", e); }
 }
 
-// ==================== MAPA DE DESENHO (no mapa principal) ====================
+// ==================== MAPA DE DESENHO ====================
 let currentPolygon = null;
 let drawMainItems = null;
 let modoDesenhoAtivo = false;
@@ -368,7 +401,6 @@ async function captureMapSnapshot() {
       try { ctx.drawImage(img, rect.left - cRect.left, rect.top - cRect.top, rect.width, rect.height); } catch(_) {}
     }
 
-    // Polígono vermelho
     ctx.beginPath();
     ctx.strokeStyle = "#ff2222";
     ctx.fillStyle = "rgba(255, 50, 50, 0.25)";
@@ -381,7 +413,6 @@ async function captureMapSnapshot() {
     ctx.fill();
     ctx.stroke();
 
-    // Vértices
     ctx.fillStyle = "#ff2222";
     currentPolygon.forEach(([lng, lat]) => {
       const pt = mainMap.latLngToContainerPoint([lat, lng]);
@@ -390,7 +421,6 @@ async function captureMapSnapshot() {
       ctx.fill();
     });
 
-    // Área escrita no centro do polígono
     const centLat = currentPolygon.reduce((s, [, lat]) => s + lat, 0) / currentPolygon.length;
     const centLng = currentPolygon.reduce((s, [lng]) => s + lng, 0) / currentPolygon.length;
     const centPt  = mainMap.latLngToContainerPoint([centLat, centLng]);
@@ -646,7 +676,6 @@ async function comprimirFoto(file) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, w, h);
 
-        // Marca d'água: data/hora + GPS na parte inferior direita
         const now = new Date();
         const dateStr = now.toLocaleString("pt-BR");
         let gpsStr = "";
@@ -753,11 +782,16 @@ async function salvarIncendio() {
       ? " (" + document.getElementById("formaOutro").value + ")"
       : "");
 
+  let nomeEquipeFinal = nomeEquipeSelecionado;
+  if (nomeEquipeSelecionado === "Outros") {
+    nomeEquipeFinal = document.getElementById("nomeEquipeOutros").value.trim() || "Outros";
+  }
+
   const data = {
     brigadista: document.getElementById("brigadista").value.trim(),
-    nomeEquipe: document.getElementById("nomeEquipe").value.trim(),
+    nomeEquipe: nomeEquipeFinal,
     brigadistas: document.getElementById("brigadistas").value.trim(),
-    municipio: document.getElementById("municipio").value.trim(),
+    municipio: municipioSelecionado,
     lat: coordCapturada.lat,
     lng: coordCapturada.lng,
     coordStr: coordCapturada.coordStr,
@@ -802,7 +836,6 @@ async function salvarIncendio() {
       limparFormulario();
       if (mapInitialized) loadFiresOnMap();
     } catch (e) {
-      // Erro de rede real — salvar offline
       await savePendingFire(fireData);
       closeModal();
       alert("⚠️ Falha na conexão. Registro salvo localmente e será sincronizado quando a conexão for restaurada.");
@@ -819,7 +852,13 @@ async function salvarIncendio() {
 function limparFormulario() {
   fotosCapturadas = [];
   renderFotoPreview();
-  ["brigadista","nomeEquipe","brigadistas","municipio","localReferencia",
+  nomeEquipeSelecionado = "";
+  municipioSelecionado = "";
+  document.querySelectorAll("#nomeEquipe-group .chip").forEach(c => c.classList.remove("active"));
+  document.getElementById("nomeEquipeOutros").style.display = "none";
+  document.getElementById("nomeEquipeOutros").value = "";
+  document.querySelectorAll("[id^='mun-']").forEach(b => b.classList.remove("active"));
+  ["brigadista","brigadistas","localReferencia",
    "nomeContato","orgaoContato","telefoneContato",
    "inicioData","inicioHora","descricao","pessoal","veiculos","debeladoData","debeladoHora",
    "dataDeteccao","horaDeteccao","formaOutro","causa"].forEach(id => {
@@ -861,18 +900,96 @@ async function loadDashboard() {
     tbody.innerHTML = data.rows.map(r => {
       const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
       const nomeEquipe = d.nomeEquipe || r.team || "–";
+      const editBtn = role === "gestor"
+        ? `<button class="btn btn-sm btn-edit" onclick='abrirEditModal(${JSON.stringify(r)})'>✏️ Editar</button>`
+        : "";
       return `<tr>
         <td>#${r.id}</td>
         <td>${new Date(r.createdAt).toLocaleString("pt-BR")}</td>
         <td title="${nomeEquipe}">${nomeEquipe}</td>
         <td title="${d.municipio || "–"}">${d.municipio || "–"}</td>
         <td>${r.area ? r.area.toFixed(2) : "N/A"}</td>
-        <td><a href="/report/${r.id}" target="_blank" class="btn btn-sm btn-secondary">📄 PDF</a></td>
+        <td style="display:flex;gap:4px;flex-wrap:wrap;">
+          <a href="/report/${r.id}" target="_blank" class="btn btn-sm btn-secondary">📄 PDF</a>
+          ${editBtn}
+        </td>
       </tr>`;
     }).join("");
   } catch (e) { console.error(e); }
 }
 
+// ==================== EDITAR REGISTRO (gestor) ====================
+function abrirEditModal(r) {
+  if (role !== "gestor") return;
+  const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
+  document.getElementById("edit-id").value = r.id;
+  document.getElementById("edit-brigadista").value = d.brigadista || "";
+  document.getElementById("edit-nomeEquipe").value = d.nomeEquipe || "";
+  document.getElementById("edit-brigadistas").value = d.brigadistas || "";
+  document.getElementById("edit-municipio").value = d.municipio || "";
+  document.getElementById("edit-localReferencia").value = d.localReferencia || "";
+  document.getElementById("edit-dataDeteccao").value = d.dataDeteccao || "";
+  document.getElementById("edit-horaDeteccao").value = d.horaDeteccao || "";
+  document.getElementById("edit-formaDeteccao").value = d.formaDeteccao || "";
+  document.getElementById("edit-nomeContato").value = d.nomeContato || "";
+  document.getElementById("edit-orgaoContato").value = d.orgaoContato || "";
+  document.getElementById("edit-telefoneContato").value = d.telefoneContato || "";
+  document.getElementById("edit-inicioData").value = d.inicioData || "";
+  document.getElementById("edit-inicioHora").value = d.inicioHora || "";
+  document.getElementById("edit-debeladoData").value = d.debeladoData || "";
+  document.getElementById("edit-debeladoHora").value = d.debeladoHora || "";
+  document.getElementById("edit-pessoal").value = d.pessoal || "";
+  document.getElementById("edit-veiculos").value = d.veiculos || "";
+  document.getElementById("edit-causa").value = d.causa || "";
+  document.getElementById("edit-descricao").value = d.descricao || "";
+  document.getElementById("edit-modal").classList.add("active");
+}
+
+function closeEditModal() {
+  document.getElementById("edit-modal").classList.remove("active");
+}
+
+async function salvarEdicao() {
+  const id = document.getElementById("edit-id").value;
+  const novaData = {
+    brigadista: document.getElementById("edit-brigadista").value.trim(),
+    nomeEquipe: document.getElementById("edit-nomeEquipe").value.trim(),
+    brigadistas: document.getElementById("edit-brigadistas").value.trim(),
+    municipio: document.getElementById("edit-municipio").value.trim(),
+    localReferencia: document.getElementById("edit-localReferencia").value.trim(),
+    dataDeteccao: document.getElementById("edit-dataDeteccao").value,
+    horaDeteccao: document.getElementById("edit-horaDeteccao").value,
+    formaDeteccao: document.getElementById("edit-formaDeteccao").value.trim(),
+    nomeContato: document.getElementById("edit-nomeContato").value.trim(),
+    orgaoContato: document.getElementById("edit-orgaoContato").value.trim(),
+    telefoneContato: document.getElementById("edit-telefoneContato").value.trim(),
+    inicioData: document.getElementById("edit-inicioData").value,
+    inicioHora: document.getElementById("edit-inicioHora").value,
+    debeladoData: document.getElementById("edit-debeladoData").value,
+    debeladoHora: document.getElementById("edit-debeladoHora").value,
+    pessoal: document.getElementById("edit-pessoal").value.trim(),
+    veiculos: document.getElementById("edit-veiculos").value.trim(),
+    causa: document.getElementById("edit-causa").value,
+    descricao: document.getElementById("edit-descricao").value.trim()
+  };
+
+  try {
+    const res = await fetch(`/fire/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": token },
+      body: JSON.stringify({ data: novaData })
+    });
+    const r = await res.json();
+    if (r.error) { alert("Erro ao salvar: " + r.error); return; }
+    closeEditModal();
+    alert("✅ Registro atualizado com sucesso!");
+    loadDashboard();
+  } catch (e) {
+    alert("Erro de conexão: " + e.message);
+  }
+}
+
+// ==================== EXPORTS ====================
 async function exportarExcel() {
   const btn = document.querySelector(".btn-export.excel");
   if (btn) { btn.textContent = "⏳ Gerando..."; btn.disabled = true; }
@@ -883,7 +1000,7 @@ async function exportarExcel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const hoje = new Date().toISOString().slice(0,10);
-    a.href = url; a.download = `incendios-brigada-${hoje}.xlsx`;
+    a.href = url; a.download = `incendios-fogobranco-${hoje}.xlsx`;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
   } catch (e) { alert("Erro ao gerar Excel: " + e.message); }
@@ -900,7 +1017,7 @@ async function exportarKMZ() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const hoje = new Date().toISOString().slice(0,10);
-    a.href = url; a.download = `incendios-brigada-${hoje}.kmz`;
+    a.href = url; a.download = `incendios-fogobranco-${hoje}.kmz`;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
   } catch (e) { alert("Erro ao gerar KMZ: " + e.message); }
@@ -945,11 +1062,7 @@ window.addEventListener("online", updateOnlineStatus);
 window.addEventListener("offline", updateOnlineStatus);
 updateOnlineStatus();
 
-// ==================== EXPORT TOKEN QUERY ====================
-// Permite exports via query string
-const origFetch = window.fetch;
-
-// ==================== SERVICE WORKER + PWA INSTALL ====================
+// ==================== SERVICE WORKER + PWA ====================
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(console.error);
 }
@@ -959,7 +1072,6 @@ let _deferredInstallPrompt = null;
 window.addEventListener("beforeinstallprompt", e => {
   e.preventDefault();
   _deferredInstallPrompt = e;
-  // Mostra banner de instalação
   const banner = document.getElementById("pwa-install-banner");
   if (banner) banner.style.display = "flex";
 });
@@ -985,11 +1097,9 @@ window.addEventListener("appinstalled", () => {
 });
 
 // ==================== INIT ====================
-// Datas padrão
 const hoje = new Date().toISOString().split("T")[0];
 document.getElementById("dataDeteccao").value = hoje;
 const agora = new Date().toTimeString().slice(0,5);
 document.getElementById("horaDeteccao").value = agora;
 
-// Inicializar primeira aba
 document.getElementById("tab-registrar").style.display = "flex";

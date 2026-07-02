@@ -95,7 +95,7 @@ function parsePoly(raw) {
   } catch { return []; }
 }
 
-// ===== LOGIN =====
+// ===== LOGIN LEGADO =====
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   db.get("SELECT * FROM users WHERE username=?", [username], (err, user) => {
@@ -104,6 +104,23 @@ app.post("/login", (req, res) => {
     const token = jwt.sign({ id: user.id, team: user.team, username: user.username }, SECRET);
     res.json({ token, team: user.team, username: user.username });
   });
+});
+
+// ===== AUTH COMBATENTE =====
+app.post("/auth/combatente", (req, res) => {
+  const token = jwt.sign({ role: "combatente", team: "Combatente" }, SECRET);
+  res.json({ token, role: "combatente", team: "Combatente" });
+});
+
+// ===== AUTH GESTOR =====
+app.post("/auth/gestor", (req, res) => {
+  const { equipe, senha } = req.body;
+  const SENHA_GESTOR = "106106";
+  const equipesValidas = ["Defesa Civil", "IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
+  if (senha !== SENHA_GESTOR) return res.json({ error: "Senha incorreta" });
+  if (!equipesValidas.includes(equipe)) return res.json({ error: "Equipe inválida" });
+  const token = jwt.sign({ role: "gestor", team: equipe }, SECRET);
+  res.json({ token, role: "gestor", team: equipe });
 });
 
 // ===== REGISTRAR INCÊNDIO =====
@@ -764,6 +781,21 @@ app.get("/export/kmz", auth, (req, res) => {
     arch.append(kml, { name: "doc.kml" });
     arch.finalize();
   });
+});
+
+// ===== EDITAR INCÊNDIO (apenas gestor) =====
+app.put("/fire/:id", auth, (req, res) => {
+  if (req.user.role !== "gestor") return res.status(403).json({ error: "Apenas gestores podem editar registros." });
+  const { data } = req.body;
+  db.run(
+    "UPDATE fires SET data=? WHERE id=?",
+    [JSON.stringify(data || {}), req.params.id],
+    function(err) {
+      if (err) return res.json({ error: err.message });
+      if (this.changes === 0) return res.json({ error: "Registro não encontrado." });
+      res.json({ ok: true });
+    }
+  );
 });
 
 // ===== SYNC OFFLINE =====

@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Brigada Ouro</title>
+  <title>Fogo Branco</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Brigada Ouro">
+  <meta name="apple-mobile-web-app-title" content="Fogo Branco">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
 <div class="pwa-banner" id="pwa-install-banner" style="display:none;">
   <img src="icon-192.png" class="pwa-banner-icon" alt="">
   <div class="pwa-banner-text">
-    <strong>Instalar Brigada Ouro</strong>
+    <strong>Instalar Fogo Branco</strong>
     <span>Adicione ao celular para acesso rápido</span>
   </div>
   <button class="pwa-btn-install" onclick="instalarPWA()">Instalar</button>
@@ -34,7 +34,7 @@
 <header class="app-header">
   <div class="header-brand">
     <img src="icon-192.png" alt="" class="header-logo">
-    Brigada Ouro
+    Fogo Branco
   </div>
   <div class="header-right">
     <span class="user-badge" id="user-badge">–</span>
@@ -64,7 +64,17 @@
 
       <div class="form-group">
         <label>Nome da Equipe</label>
-        <input type="text" id="nomeEquipe" placeholder="Nome da equipe" oninput="atualizarBadgeEquipe()">
+        <div class="chip-group" id="nomeEquipe-group">
+          <button class="chip" onclick="selecionarEquipeForm(this,'Defesa Civil')">Defesa Civil</button>
+          <button class="chip" onclick="selecionarEquipeForm(this,'IEF')">IEF</button>
+          <button class="chip" onclick="selecionarEquipeForm(this,'Carcará')">Carcará</button>
+          <button class="chip" onclick="selecionarEquipeForm(this,'AMDA Gerdau')">AMDA Gerdau</button>
+          <button class="chip" onclick="selecionarEquipeForm(this,'AMDA IEF')">AMDA IEF</button>
+          <button class="chip" onclick="selecionarEquipeForm(this,'CBMMG')">CBMMG</button>
+          <button class="chip" onclick="selecionarEquipeForm(this,'Contratados CBMMG')">Contratados CBMMG</button>
+          <button class="chip" id="chip-equipe-outros" onclick="selecionarEquipeForm(this,'Outros')">Outros</button>
+        </div>
+        <input type="text" id="nomeEquipeOutros" placeholder="Nome da equipe..." style="display:none; margin-top:8px;">
       </div>
 
       <div class="form-group">
@@ -78,7 +88,11 @@
 
       <div class="form-group">
         <label>Município</label>
-        <input type="text" id="municipio" placeholder="Nome do município">
+        <div class="toggle-group">
+          <button class="toggle-btn" id="mun-ourobranco" onclick="setMunicipio('Ouro Branco')">Ouro Branco</button>
+          <button class="toggle-btn" id="mun-ouropreto" onclick="setMunicipio('Ouro Preto')">Ouro Preto</button>
+          <button class="toggle-btn" id="mun-congonhas" onclick="setMunicipio('Congonhas')">Congonhas</button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -327,7 +341,6 @@
 <!-- ABA MAPA -->
 <div class="tab-content" id="tab-mapa" style="display:none;">
   <div id="map"></div>
-  <!-- Alternador de camada (Rua / Satélite) -->
   <div class="map-layer-switch">
     <button id="btn-layer-mapa" class="layer-btn active" onclick="setMapLayer('mapa')">🗺️ Rua</button>
     <button id="btn-layer-sat" class="layer-btn" onclick="setMapLayer('satelite')">🛰️ Satélite</button>
@@ -340,14 +353,13 @@
       🔄
     </button>
   </div>
-  <!-- Barra de confirmação do polígono (aparece só no modo de desenho) -->
   <div id="map-draw-confirm">
     <button id="btn-desenhar" class="btn btn-secondary" onclick="toggleDesenharPoligono()" style="flex:1;">✏️ Desenhar Polígono</button>
     <button class="btn btn-primary" onclick="confirmarDesenhoMapaPrincipal()" style="flex:1;">✅ Confirmar Área</button>
   </div>
 </div>
 
-<!-- ABA DASHBOARD -->
+<!-- ABA DASHBOARD (apenas gestor) -->
 <div class="tab-content" id="tab-dashboard" style="display:none;">
   <div class="dashboard-scroll">
     <div class="dash-header">
@@ -396,7 +408,6 @@
     </div>
   </div>
 
-  <!-- Sobre fixo na parte inferior do dashboard -->
   <div class="sobre-card" id="sobre-section">
     <div class="sobre-header" onclick="toggleSobre()">
       <span>ℹ️ Sobre o Sistema</span>
@@ -404,7 +415,7 @@
     </div>
     <div class="sobre-body" id="sobre-body" style="display:none;">
       <div class="sobre-logo">🔥</div>
-      <div class="sobre-title">Brigada Ouro</div>
+      <div class="sobre-title">Fogo Branco</div>
       <div class="sobre-sub">Sistema de Combate a Incêndios Florestais</div>
       <div class="sobre-divider"></div>
       <div class="sobre-row"><span class="sobre-icon">👤</span><span>Desenvolvido por <strong>Sócrates Resende</strong></span></div>
@@ -424,7 +435,7 @@
     <span class="nav-icon">🗺️</span>
     <span class="nav-label">Mapa</span>
   </button>
-  <button class="nav-item" id="nav-dashboard" onclick="switchTab('dashboard')">
+  <button class="nav-item" id="nav-dashboard" onclick="switchTab('dashboard')" style="display:none;">
     <span class="nav-icon">📊</span>
     <span class="nav-label">Dashboard</span>
   </button>
@@ -450,11 +461,57 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR REGISTRO (apenas gestor) -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal modal-edit">
+    <h2>✏️ Editar Registro</h2>
+    <input type="hidden" id="edit-id">
+    <div class="edit-scroll">
+      <div class="form-group"><label>Brigadista Responsável</label><input type="text" id="edit-brigadista"></div>
+      <div class="form-group"><label>Nome da Equipe</label><input type="text" id="edit-nomeEquipe"></div>
+      <div class="form-group"><label>Brigadistas da Equipe</label><textarea id="edit-brigadistas" rows="2"></textarea></div>
+      <div class="form-group"><label>Município</label><input type="text" id="edit-municipio"></div>
+      <div class="form-group"><label>Local de Referência</label><input type="text" id="edit-localReferencia"></div>
+      <div class="form-group"><label>Data de Detecção</label><input type="date" id="edit-dataDeteccao"></div>
+      <div class="form-group"><label>Hora de Detecção</label><input type="time" id="edit-horaDeteccao"></div>
+      <div class="form-group"><label>Forma de Detecção</label><input type="text" id="edit-formaDeteccao"></div>
+      <div class="form-group"><label>Nome do Contato</label><input type="text" id="edit-nomeContato"></div>
+      <div class="form-group"><label>Órgão / Função</label><input type="text" id="edit-orgaoContato"></div>
+      <div class="form-group"><label>Telefone</label><input type="tel" id="edit-telefoneContato"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Início – Data</label><input type="date" id="edit-inicioData"></div>
+        <div class="form-group"><label>Início – Hora</label><input type="time" id="edit-inicioHora"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Debelado – Data</label><input type="date" id="edit-debeladoData"></div>
+        <div class="form-group"><label>Debelado – Hora</label><input type="time" id="edit-debeladoHora"></div>
+      </div>
+      <div class="form-group"><label>Pessoal Mobilizado</label><input type="text" id="edit-pessoal"></div>
+      <div class="form-group"><label>Veículos Mobilizados</label><input type="text" id="edit-veiculos"></div>
+      <div class="form-group">
+        <label>Causa do Incêndio</label>
+        <select id="edit-causa">
+          <option value="">Selecione...</option>
+          <option value="Raio">⚡ Raio</option>
+          <option value="Queima Controlada">🔥 Queima Controlada</option>
+          <option value="Acidente">⚠️ Acidente</option>
+          <option value="Criminoso (Doloso)">🚨 Criminoso (Doloso)</option>
+          <option value="Desconhecida">❓ Desconhecida</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Descrição da Ocorrência</label><textarea id="edit-descricao" rows="3"></textarea></div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeEditModal()" style="flex:1">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicao()" style="flex:1">💾 Salvar Alterações</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 <script src="db.js"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
