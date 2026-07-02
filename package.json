@@ -1,11 +1,8 @@
 {
-  "name": "brigada-ouro",
+  "name": "fogo-branco",
   "version": "3.0.0",
-  "description": "Sistema de Registro de Ocorrências de Incêndio Florestal",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev:local": "cd app && node server.js",
     "deploy": "wrangler pages deploy app/public"
   }
 }

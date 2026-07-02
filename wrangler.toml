@@ -1,7 +1,6 @@
-name = "brigada-ouro"
+name = "fogo-branco"
 pages_build_output_dir = "app/public"
 compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
