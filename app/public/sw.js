@@ -1,5 +1,5 @@
-const CACHE_NAME = "brigada-ouro-v4";
-const TILE_CACHE = "brigada-tiles-v1";
+const CACHE_NAME = "fogo-branco-v1";
+const TILE_CACHE = "fogo-branco-tiles-v1";
 
 // Ouro Branco, MG – coordenadas do centro e raio offline
 const OB_LAT = -20.52;
@@ -125,6 +125,7 @@ self.addEventListener("fetch", e => {
 
   // Ignora chamadas de API (sempre precisam de rede)
   if (
+    url.includes("/auth/") ||
     url.includes("/dashboard") ||
     url.includes("/fire") ||
     url.includes("/sync") ||
