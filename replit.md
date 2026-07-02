@@ -1,47 +1,42 @@
-# Brigada Ouro – Sistema de Registro de Incêndios Florestais
+# Fogo Branco — Sistema de Combate a Incêndios Florestais
 
-A PWA (Progressive Web App) for forest fire brigade teams to register, track, and export wildfire incidents.
+Aplicação web de gestão de brigadas de combate a incêndios florestais (Incendio v3).
 
 ## Stack
+- **Backend:** Node.js + Express
+- **Base de dados:** SQLite (`app/db.sqlite`)
+- **Autenticação:** JWT (usa `SESSION_SECRET` do ambiente ou chave padrão)
+- **Frontend:** HTML/CSS/JS puro (PWA com service worker)
+- **Exportação:** PDF (pdfkit), Excel (exceljs/xlsx), KMZ (archiver + turf)
 
-- **Backend:** Node.js + Express, SQLite (via `sqlite3`)
-- **Frontend:** Vanilla JS PWA with offline support (service worker)
-- **Auth:** JWT tokens (`jsonwebtoken` + `bcryptjs`)
-- **Reports:** PDF (`pdfkit`), Excel (`exceljs`), KMZ (`archiver`)
-- **Geo:** `@turf/turf` for polygon area calculation
-
-## Running the app
-
+## Estrutura
 ```
+app/
+  server.js        # servidor Express + todas as rotas da API
+  package.json
+  public/          # frontend estático (HTML, CSS, JS, ícones)
+  uploads/         # ficheiros enviados pelos utilizadores
+  db.sqlite        # base de dados SQLite (criada automaticamente)
+```
+
+## Como executar
+```bash
 cd app && node server.js
 ```
+O servidor inicia na porta `5000` (ou `PORT` se definida no ambiente).
 
-The server starts on port 5000. The workflow `Start application` handles this automatically.
+## Funcionalidades
+- Login com dois perfis: **Combatente** (registo + mapa) e **Gestor** (acesso completo)
+- Registo de ocorrências de incêndio com geolocalização
+- Dashboard de gestão
+- Exportação de relatórios em PDF, Excel e KMZ
+- PWA (instalável em dispositivos móveis)
 
-## Default credentials (demo)
+## Variáveis de ambiente
+| Variável | Descrição |
+|---|---|
+| `SESSION_SECRET` / `JWT_SECRET` | Chave para assinar tokens JWT |
+| `PORT` | Porta do servidor (padrão: 5000) |
 
-- `admin` / `admin123` — Equipe Alpha
-- `brigada1` / `brigada123` — Equipe Beta
-
-## Key routes
-
-| Route | Description |
-|-------|-------------|
-| `POST /login` | Authenticate, returns JWT |
-| `POST /fire` | Register a fire incident (auth required) |
-| `GET /dashboard` | All incidents summary |
-| `GET /report/:id` | Download PDF report for an incident |
-| `GET /export/excel` | Download full Excel export (auth required) |
-| `GET /export/kmz` | Download KMZ/KML for Google Earth (auth required) |
-| `POST /sync` | Sync offline-recorded incidents (auth required) |
-
-## Data storage
-
-SQLite database at `app/db.sqlite` (auto-created on first run). Schema in `schema.sql` (also used for Cloudflare D1 deployment — see `CLOUDFLARE_SETUP.md`).
-
-## Environment variables
-
-- `SESSION_SECRET` / `JWT_SECRET` — JWT signing key (falls back to a hardcoded dev default if unset)
-- `PORT` — server port (default: 5000)
-
-## User preferences
+## Preferências do utilizador
+- Responder sempre em português.

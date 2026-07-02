@@ -80,14 +80,6 @@ function auth(req, res, next) {
     req.user = jwt.verify(token, SECRET);
     return next();
   } catch (e) {}
-  // Aceita token local gerado pelo browser (sem servidor)
-  try {
-    const parts = token.split(".");
-    if (parts.length === 3 && parts[2] === "local") {
-      const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"));
-      if (payload.role && payload.team) { req.user = payload; return next(); }
-    }
-  } catch (e) {}
   res.status(401).json({ error: "Invalid token" });
 }
 
@@ -153,7 +145,7 @@ app.post("/fire", auth, (req, res) => {
 });
 
 // ===== DASHBOARD =====
-app.get("/dashboard", (req, res) => {
+app.get("/dashboard", auth, (req, res) => {
   db.all("SELECT * FROM fires ORDER BY createdAt DESC", (err, rows) => {
     if (err) return res.json({ error: err.message });
     const total = rows.length;
@@ -163,7 +155,7 @@ app.get("/dashboard", (req, res) => {
 });
 
 // ===== PDF RELATÓRIO =====
-app.get("/report/:id", (req, res) => {
+app.get("/report/:id", auth, (req, res) => {
   db.get("SELECT * FROM fires WHERE id=?", [req.params.id], (err, row) => {
     if (!row) return res.status(404).send("Não encontrado");
     const d = parseData(row.data);
