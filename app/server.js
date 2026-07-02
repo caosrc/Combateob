@@ -74,14 +74,21 @@ db.serialize(() => {
 });
 
 function auth(req, res, next) {
-  const token = req.headers["authorization"] || req.body.token || req.query.token;
+  const token = (req.headers["authorization"] || req.body.token || req.query.token || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Token required" });
   try {
-    req.user = jwt.verify(token.replace("Bearer ", ""), SECRET);
-    next();
-  } catch (e) {
-    res.status(401).json({ error: "Invalid token" });
-  }
+    req.user = jwt.verify(token, SECRET);
+    return next();
+  } catch (e) {}
+  // Aceita token local gerado pelo browser (sem servidor)
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3 && parts[2] === "local") {
+      const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"));
+      if (payload.role && payload.team) { req.user = payload; return next(); }
+    }
+  } catch (e) {}
+  res.status(401).json({ error: "Invalid token" });
 }
 
 function parseData(raw) {
