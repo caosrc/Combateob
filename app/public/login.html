@@ -276,52 +276,66 @@
     document.getElementById("error-msg").style.display = "none";
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // AUTENTICAÇÃO OFFLINE — funciona sem service worker, apenas localStorage
+  // Chaves de backup: fb_tok_combatente | fb_tok_gestor_<equipe>
+  // ══════════════════════════════════════════════════════════════════════
+
+  function salvarTokenOffline(role, equipe, token) {
+    if (role === "combatente") localStorage.setItem("fb_tok_combatente", token);
+    else localStorage.setItem("fb_tok_gestor_" + equipe, token);
+  }
+
+  function tokenOffline(role, equipe) {
+    if (role === "combatente") return localStorage.getItem("fb_tok_combatente");
+    return localStorage.getItem("fb_tok_gestor_" + equipe);
+  }
+
+  function entrarComToken(token, role, team) {
+    localStorage.setItem("token", token);
+    localStorage.setItem("role", role);
+    localStorage.setItem("team", team);
+    window.location.href = "/";
+  }
+
+  // ── Pré-cache silencioso do token de combatente a cada abertura online ─
+  // Garante que o backup existe sem nenhuma ação do utilizador.
+  (async () => {
+    try {
+      const r = await fetch("/auth/combatente", {
+        method: "POST", headers: { "Content-Type": "application/json" }
+      });
+      const d = await r.json();
+      if (d.token) salvarTokenOffline("combatente", "", d.token);
+    } catch (_) {}
+  })();
+
   // ── Entrar como Combatente ─────────────────────────────────────────────
-  // O service worker intercepta este fetch e serve do cache quando offline.
   async function entrarCombatente() {
     const errorEl = document.getElementById("error-msg");
     errorEl.style.display = "none";
 
     try {
       const r = await fetch("/auth/combatente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
+        method: "POST", headers: { "Content-Type": "application/json" }
       });
       const data = await r.json();
-
-      if (data.error === "offline_no_cache") {
-        errorEl.textContent = "📴 Sem conexão. Abra o app com internet pelo menos uma vez para habilitar o uso offline.";
-        errorEl.style.display = "block";
+      if (data.token) {
+        salvarTokenOffline("combatente", "", data.token);
+        entrarComToken(data.token, "combatente", "Combatente");
         return;
       }
+    } catch (_) {}
 
-      if (!data.token) {
-        errorEl.textContent = "Erro ao autenticar. Tente novamente.";
-        errorEl.style.display = "block";
-        return;
-      }
+    // Servidor inacessível — usa token guardado
+    const tok = tokenOffline("combatente", "");
+    if (tok) { entrarComToken(tok, "combatente", "Combatente"); return; }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", "combatente");
-      localStorage.setItem("team", "Combatente");
-      window.location.href = "/";
-    } catch (_) {
-      errorEl.textContent = "Erro inesperado. Tente novamente.";
-      errorEl.style.display = "block";
-    }
-  }
-
-  // ── Pré-aquece o cache do token de combatente na abertura da página ────
-  // Garante que o token fica guardado no SW logo na primeira visita online.
-  if ("serviceWorker" in navigator) {
-    fetch("/auth/combatente", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }
-    }).catch(() => {});
+    errorEl.textContent = "📴 Sem conexão. Abra o app com internet pelo menos uma vez para usar offline.";
+    errorEl.style.display = "block";
   }
 
   // ── Entrar como Gestor ─────────────────────────────────────────────────
-  // O service worker intercepta este fetch e serve do cache quando offline.
   async function entrarGestor() {
     const senha   = document.getElementById("senha-gestor").value;
     const errorEl = document.getElementById("error-msg");
@@ -336,21 +350,21 @@
       });
       const data = await r.json();
 
-      if (data.error === "offline_no_cache") {
-        errorEl.textContent = "📴 Sem conexão. Entre como Gestor com internet pelo menos uma vez para habilitar o uso offline.";
-        errorEl.style.display = "block";
+      if (data.token) {
+        salvarTokenOffline("gestor", equipeSelecionada, data.token);
+        entrarComToken(data.token, "gestor", equipeSelecionada);
         return;
       }
+      // Erro do servidor (ex: senha incorreta) — mostra a mensagem
       if (data.error) { errorEl.textContent = data.error; errorEl.style.display = "block"; return; }
+    } catch (_) {}
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", "gestor");
-      localStorage.setItem("team", equipeSelecionada);
-      window.location.href = "/";
-    } catch (_) {
-      errorEl.textContent = "Erro inesperado. Tente novamente.";
-      errorEl.style.display = "block";
-    }
+    // Servidor inacessível — usa token guardado para esta equipa
+    const tok = tokenOffline("gestor", equipeSelecionada);
+    if (tok) { entrarComToken(tok, "gestor", equipeSelecionada); return; }
+
+    errorEl.textContent = "📴 Sem conexão. Entre como Gestor com internet pelo menos uma vez para usar offline.";
+    errorEl.style.display = "block";
   }
 </script>
 </body>
