@@ -298,73 +298,70 @@
     window.location.href = "/";
   }
 
-  // ── Pré-cache silencioso do token de combatente a cada abertura online ─
-  // Garante que o backup existe sem nenhuma ação do utilizador.
-  (async () => {
-    try {
-      const r = await fetch("/auth/combatente", {
-        method: "POST", headers: { "Content-Type": "application/json" }
-      });
-      const d = await r.json();
-      if (d.token) salvarTokenOffline("combatente", "", d.token);
-    } catch (_) {}
-  })();
+  // ══════════════════════════════════════════════════════════════════════
+  // TOKEN LOCAL — gerado 100% no navegador, sem depender do servidor.
+  // Formato: base64(payload) + ".local" — o servidor decodifica e confia
+  // nele localmente (ver função auth() em server.js). Funciona offline,
+  // em app instalado, ou em hospedagem estática (Cloudflare Pages).
+  // ══════════════════════════════════════════════════════════════════════
+  function gerarTokenLocal(payload) {
+    const json = JSON.stringify(payload);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    return b64 + ".local";
+  }
+
+  const SENHA_GESTOR_LOCAL = "106106";
+  const EQUIPES_VALIDAS_LOCAL = ["Defesa Civil", "IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
 
   // ── Entrar como Combatente ─────────────────────────────────────────────
-  async function entrarCombatente() {
+  // Gera o token localmente na hora — nunca falha, com ou sem internet.
+  function entrarCombatente() {
     const errorEl = document.getElementById("error-msg");
     errorEl.style.display = "none";
 
-    try {
-      const r = await fetch("/auth/combatente", {
-        method: "POST", headers: { "Content-Type": "application/json" }
-      });
-      const data = await r.json();
-      if (data.token) {
-        salvarTokenOffline("combatente", "", data.token);
-        entrarComToken(data.token, "combatente", "Combatente");
-        return;
-      }
-    } catch (_) {}
+    const token = gerarTokenLocal({ role: "combatente", team: "Combatente" });
+    salvarTokenOffline("combatente", "", token);
+    entrarComToken(token, "combatente", "Combatente");
 
-    // Servidor inacessível — usa token guardado
-    const tok = tokenOffline("combatente", "");
-    if (tok) { entrarComToken(tok, "combatente", "Combatente"); return; }
-
-    errorEl.textContent = "📴 Sem conexão. Abra o app com internet pelo menos uma vez para usar offline.";
-    errorEl.style.display = "block";
+    // Tenta obter um token "oficial" do servidor em segundo plano (best-effort)
+    fetch("/auth/combatente", { method: "POST", headers: { "Content-Type": "application/json" } })
+      .then(r => r.json())
+      .then(d => { if (d.token) salvarTokenOffline("combatente", "", d.token); })
+      .catch(() => {});
   }
 
   // ── Entrar como Gestor ─────────────────────────────────────────────────
-  async function entrarGestor() {
+  // Valida a senha localmente e gera o token na hora — funciona offline.
+  function entrarGestor() {
     const senha   = document.getElementById("senha-gestor").value;
     const errorEl = document.getElementById("error-msg");
     errorEl.style.display = "none";
     if (!senha) { errorEl.textContent = "Digite a senha."; errorEl.style.display = "block"; return; }
 
-    try {
-      const r = await fetch("/auth/gestor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ equipe: equipeSelecionada, senha })
-      });
-      const data = await r.json();
+    if (senha !== SENHA_GESTOR_LOCAL) {
+      errorEl.textContent = "Senha incorreta";
+      errorEl.style.display = "block";
+      return;
+    }
+    if (!EQUIPES_VALIDAS_LOCAL.includes(equipeSelecionada)) {
+      errorEl.textContent = "Equipe inválida";
+      errorEl.style.display = "block";
+      return;
+    }
 
-      if (data.token) {
-        salvarTokenOffline("gestor", equipeSelecionada, data.token);
-        entrarComToken(data.token, "gestor", equipeSelecionada);
-        return;
-      }
-      // Erro do servidor (ex: senha incorreta) — mostra a mensagem
-      if (data.error) { errorEl.textContent = data.error; errorEl.style.display = "block"; return; }
-    } catch (_) {}
+    const token = gerarTokenLocal({ role: "gestor", team: equipeSelecionada, senha });
+    salvarTokenOffline("gestor", equipeSelecionada, token);
+    entrarComToken(token, "gestor", equipeSelecionada);
 
-    // Servidor inacessível — usa token guardado para esta equipa
-    const tok = tokenOffline("gestor", equipeSelecionada);
-    if (tok) { entrarComToken(tok, "gestor", equipeSelecionada); return; }
-
-    errorEl.textContent = "📴 Sem conexão. Entre como Gestor com internet pelo menos uma vez para usar offline.";
-    errorEl.style.display = "block";
+    // Tenta obter um token "oficial" do servidor em segundo plano (best-effort)
+    fetch("/auth/gestor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ equipe: equipeSelecionada, senha })
+    })
+      .then(r => r.json())
+      .then(d => { if (d.token) salvarTokenOffline("gestor", equipeSelecionada, d.token); })
+      .catch(() => {});
   }
 </script>
 </body>

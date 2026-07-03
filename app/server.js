@@ -73,9 +73,32 @@ db.serialize(() => {
   });
 });
 
+const GESTOR_SENHA = "106106";
+const EQUIPES_VALIDAS = ["Defesa Civil", "IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
+
 function auth(req, res, next) {
   const token = (req.headers["authorization"] || req.body.token || req.query.token || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Token required" });
+
+  // Token local gerado no cliente (sem servidor/offline): formato base64(payload).local
+  if (token.endsWith(".local")) {
+    try {
+      const payloadB64 = token.slice(0, -".local".length);
+      const payload = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf8"));
+      const role = payload.role;
+      const team = payload.team;
+      if (role === "combatente") {
+        req.user = { role: "combatente", team: "Combatente" };
+        return next();
+      }
+      if (role === "gestor" && payload.senha === GESTOR_SENHA && EQUIPES_VALIDAS.includes(team)) {
+        req.user = { role: "gestor", team };
+        return next();
+      }
+    } catch (e) {}
+    return res.status(401).json({ error: "Invalid token" });
+  }
+
   try {
     req.user = jwt.verify(token, SECRET);
     return next();
