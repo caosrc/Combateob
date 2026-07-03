@@ -1,5 +1,5 @@
-const CACHE_NAME  = "fogo-branco-v3";
-const TILE_CACHE  = "fogo-branco-tiles-v3";
+const CACHE_NAME  = "fogo-branco-v4";
+const TILE_CACHE  = "fogo-branco-tiles-v4";
 
 // Ouro Branco, MG
 const OB_LAT = -20.52;
@@ -151,9 +151,19 @@ async function preloadOuroBrancoTiles() {
 }
 
 // ─── INSTALL ──────────────────────────────────────────────────────────────────
+// Cacheia cada arquivo individualmente — se um CDN externo falhar, os arquivos
+// locais essenciais ainda são salvos (addAll falha tudo-ou-nada, por isso evitamos).
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(APP_URLS).catch(() => {}))
+    caches.open(CACHE_NAME).then(c =>
+      Promise.all(
+        APP_URLS.map(url =>
+          fetch(url, { cache: "no-cache" })
+            .then(res => { if (res.ok) return c.put(url, res); })
+            .catch(() => {})
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -213,7 +223,31 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // ── Shell do app – stale-while-revalidate ────────────────────────────────
+  // ── Navegação (abrir o app) – cache primeiro, com fallback garantido ─────
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      caches.match(e.request).then(async cached => {
+        if (cached) {
+          fetch(e.request).then(res => {
+            if (res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+          }).catch(() => {});
+          return cached;
+        }
+        try {
+          const res = await fetch(e.request);
+          if (res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+          return res;
+        } catch (_) {
+          // Sem rede e sem cache exato: usa a shell principal como fallback
+          const fallback = await caches.match("/index.html") || await caches.match("/login.html");
+          return fallback || new Response("Offline", { status: 503 });
+        }
+      })
+    );
+    return;
+  }
+
+  // ── Demais recursos do shell – stale-while-revalidate ────────────────────
   e.respondWith(
     caches.match(e.request).then(cached => {
       const net = fetch(e.request).then(res => {
