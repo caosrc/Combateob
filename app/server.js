@@ -837,6 +837,18 @@ app.put("/fire/:id", auth, (req, res) => {
   );
 });
 
+// ===== APAGAR INCÊNDIO (apenas gestor + senha) =====
+app.delete("/fire/:id", auth, (req, res) => {
+  if (req.user.role !== "gestor") return res.status(403).json({ error: "Apenas gestores podem apagar registros." });
+  const { senha } = req.body;
+  if (senha !== GESTOR_SENHA) return res.status(403).json({ error: "Senha de gestor incorreta." });
+  db.run("DELETE FROM fires WHERE id=?", [req.params.id], function(err) {
+    if (err) return res.json({ error: err.message });
+    if (this.changes === 0) return res.json({ error: "Registro não encontrado." });
+    res.json({ ok: true });
+  });
+});
+
 // ===== SYNC OFFLINE =====
 app.post("/sync", auth, async (req, res) => {
   const { fires } = req.body;
