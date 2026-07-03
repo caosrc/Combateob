@@ -1236,7 +1236,7 @@ async function salvarMapaOffline() {
     const sw = reg && (reg.active || reg.installing || reg.waiting);
     if (!sw) { alert("Aguarde o app terminar de carregar e tente novamente."); return; }
     document.getElementById("mo-progress-mapa").style.display = "flex";
-    sw.postMessage({ type: "START_TILE_DOWNLOAD", radiusKm: 10 });
+    sw.postMessage({ type: "START_TILE_DOWNLOAD", radiusKm: 40 });
   } catch (e) {
     alert("Erro ao iniciar download do mapa: " + e.message);
   }
