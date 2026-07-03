@@ -1,5 +1,5 @@
-const CACHE_NAME  = "fogo-branco-v5";
-const TILE_CACHE  = "fogo-branco-tiles-v5";
+const CACHE_NAME  = "fogo-branco-v6";
+const TILE_CACHE  = "fogo-branco-tiles-v6";
 
 // Ouro Branco, MG
 const OB_LAT = -20.52;
@@ -193,12 +193,16 @@ self.addEventListener("fetch", e => {
 
   const url = e.request.url;
 
-  // Rotas de API que precisam sempre de rede (exceto combatente já tratado acima)
+  // Rotas de API que precisam sempre de rede — mas só para fetch/XHR, nunca para navegação de página.
+  // Se for navegação (mode === "navigate"), cai direto no handler de navigate abaixo para servir do cache.
   if (
-    url.includes("/auth/") || url.includes("/dashboard") ||
-    url.includes("/fire")  || url.includes("/sync")      ||
-    url.includes("/login") || url.includes("/report")    ||
-    url.includes("/export")
+    e.request.mode !== "navigate" &&
+    (
+      url.includes("/auth/") || url.includes("/dashboard") ||
+      url.includes("/fire")  || url.includes("/sync")      ||
+      url.includes("/login") || url.includes("/report")    ||
+      url.includes("/export")
+    )
   ) return;
 
   // ── Tiles de mapa ────────────────────────────────────────────────────────
