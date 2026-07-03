@@ -321,17 +321,12 @@
   }
 
   // ── Entrar como Gestor ─────────────────────────────────────────────────
+  // O service worker intercepta este fetch e serve do cache quando offline.
   async function entrarGestor() {
     const senha   = document.getElementById("senha-gestor").value;
     const errorEl = document.getElementById("error-msg");
     errorEl.style.display = "none";
     if (!senha) { errorEl.textContent = "Digite a senha."; errorEl.style.display = "block"; return; }
-
-    if (!navigator.onLine) {
-      errorEl.textContent = "📴 Gestor precisa de conexão para entrar.";
-      errorEl.style.display = "block";
-      return;
-    }
 
     try {
       const r = await fetch("/auth/gestor", {
@@ -340,13 +335,20 @@
         body: JSON.stringify({ equipe: equipeSelecionada, senha })
       });
       const data = await r.json();
+
+      if (data.error === "offline_no_cache") {
+        errorEl.textContent = "📴 Sem conexão. Entre como Gestor com internet pelo menos uma vez para habilitar o uso offline.";
+        errorEl.style.display = "block";
+        return;
+      }
       if (data.error) { errorEl.textContent = data.error; errorEl.style.display = "block"; return; }
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", "gestor");
       localStorage.setItem("team", equipeSelecionada);
       window.location.href = "/";
     } catch (_) {
-      errorEl.textContent = "Sem conexão com o servidor.";
+      errorEl.textContent = "Erro inesperado. Tente novamente.";
       errorEl.style.display = "block";
     }
   }

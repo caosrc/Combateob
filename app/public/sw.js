@@ -176,20 +176,30 @@ self.addEventListener("message", e => {
   }
 });
 
-// ─── Cache de auth do combatente (POST) ─────────────────────────────────────
+// ─── Cache de auth (Combatente e Gestor) ─────────────────────────────────────
 const AUTH_CACHE = "fogo-branco-auth-v1";
 
-async function handleCombatenteAuth(request) {
-  // Tenta o servidor primeiro
+/**
+ * fetchUrl   – URL real do servidor (ex: "/auth/gestor")
+ * bodyText   – body JSON em texto (lido uma única vez antes de chamar)
+ * storageKey – chave única no cache (ex: "/combatente" ou "/gestor/IEF")
+ */
+async function handleAuthWithCache(fetchUrl, bodyText, storageKey) {
+  const c = await caches.open(AUTH_CACHE);
+
+  // Tenta o servidor
   try {
-    const res = await fetch(request.clone());
+    const res = await fetch(new Request(fetchUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: bodyText
+    }));
     if (res.ok) {
       const data = await res.clone().json();
-      if (data.token) {
-        // Guarda o token em cache para uso offline
-        const c = await caches.open(AUTH_CACHE);
+      if (data.token && !data.error) {
+        // Guarda token no cache para uso offline
         await c.put(
-          new Request("/__combatente_token__"),
+          new Request("/__auth__" + storageKey),
           new Response(JSON.stringify(data), {
             headers: { "Content-Type": "application/json" }
           })
@@ -199,25 +209,41 @@ async function handleCombatenteAuth(request) {
     }
   } catch (_) {}
 
-  // Servidor inacessível – serve o token guardado em cache
-  const c = await caches.open(AUTH_CACHE);
-  const cached = await c.match("/__combatente_token__");
+  // Servidor inacessível – serve do cache
+  const cached = await c.match("/__auth__" + storageKey);
   if (cached) return cached.clone();
 
-  // Sem cache ainda – devolve erro claro
   return new Response(
     JSON.stringify({ error: "offline_no_cache" }),
     { status: 503, headers: { "Content-Type": "application/json" } }
   );
 }
 
+async function handleCombatenteAuth(request) {
+  // Lê body uma única vez
+  const body = await request.text().catch(() => "{}");
+  return handleAuthWithCache("/auth/combatente", body, "/combatente");
+}
+
+async function handleGestorAuth(request) {
+  // Lê body uma única vez; extrai equipa para chave de cache por equipa
+  const body = await request.text().catch(() => "{}");
+  let equipe = "";
+  try { equipe = JSON.parse(body).equipe || ""; } catch (_) {}
+  return handleAuthWithCache("/auth/gestor", body, `/gestor/${equipe}`);
+}
+
 // ─── FETCH: serve cache → rede ───────────────────────────────────────────────
 self.addEventListener("fetch", e => {
   const url = e.request.url;
 
-  // Intercepta POST /auth/combatente para funcionar offline
+  // Intercepta POST de auth para funcionar offline
   if (e.request.method === "POST" && url.includes("/auth/combatente")) {
     e.respondWith(handleCombatenteAuth(e.request));
+    return;
+  }
+  if (e.request.method === "POST" && url.includes("/auth/gestor")) {
+    e.respondWith(handleGestorAuth(e.request));
     return;
   }
 
