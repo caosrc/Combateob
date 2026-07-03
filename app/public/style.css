@@ -986,7 +986,7 @@ html, body {
 /* Busca de endereço no mapa */
 .map-search-bar {
   position: absolute;
-  top: 12px;
+  top: 62px;
   left: 12px;
   right: 12px;
   z-index: 900;
