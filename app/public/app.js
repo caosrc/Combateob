@@ -249,12 +249,34 @@ function toggleGPSMapa() {
   );
 }
 
+// Detetar se a resposta é HTML (redirect/erro) em vez de JSON
+function respostaValida(res) {
+  const ct = res.headers.get("content-type") || "";
+  return res.ok && !ct.includes("text/html");
+}
+
 async function loadFiresOnMap() {
   if (!mainMap || !fireLayerGroup) return;
   fireLayerGroup.clearLayers();
+
+  let data = null;
   try {
     const res = await fetch("/dashboard");
-    const data = await res.json();
+    if (respostaValida(res)) {
+      data = await res.json();
+      // Atualiza o cache local com dados frescos
+      await saveDashboardCache(data).catch(() => {});
+    }
+  } catch (_) { /* offline */ }
+
+  // Fallback: usar cache do IndexedDB se não obteve dados do servidor
+  if (!data) {
+    data = await getDashboardCache().catch(() => null);
+  }
+
+  if (!data) return;
+
+  try {
     (data.rows || []).forEach(r => {
       const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
       let poly = (() => { try { return JSON.parse(r.polygon || "[]"); } catch { return []; } })();
@@ -457,7 +479,11 @@ async function captureMapSnapshot() {
     ctx.fillText(areaLabel, centPt.x, centPt.y);
     ctx.shadowBlur = 0;
 
-    return canvas.toDataURL("image/jpeg", 0.82);
+    const result = canvas.toDataURL("image/jpeg", 0.82);
+    // Liberar canvas da memória após uso
+    canvas.width = 0;
+    canvas.height = 0;
+    return result;
   } catch(e) {
     console.warn("Snapshot falhou:", e);
     return null;
@@ -718,7 +744,11 @@ async function comprimirFoto(file) {
         ctx.textAlign = "left";
         linhas.forEach((ln, i) => ctx.fillText(ln, bx + pad, by + pad + (i + 1) * lh - 3));
 
-        resolve(canvas.toDataURL("image/jpeg", 0.65));
+        const result = canvas.toDataURL("image/jpeg", 0.65);
+        // Liberar canvas da memória após uso
+        canvas.width = 0;
+        canvas.height = 0;
+        resolve(result);
       };
       img.src = e.target.result;
     };
@@ -863,35 +893,34 @@ async function salvarIncendio() {
     return;
   }
 
-  // MODO NOVO REGISTRO
-  if (navigator.onLine) {
-    try {
-      const res = await fetch("/fire", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": token },
-        body: JSON.stringify(fireData)
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => res.status);
-        alert(`❌ Erro do servidor (${res.status}).\n${String(txt).substring(0,200)}`);
-        return;
-      }
-      const r = await res.json();
-      if (r.error) { alert("❌ Erro: " + r.error); return; }
-      closeModal();
-      alert(`✅ Incêndio registrado!\nÁrea: ${r.area.toFixed(4)} ha\nID: #${r.id}`);
-      limparFormulario();
-      if (mapInitialized) loadFiresOnMap();
-    } catch (e) {
-      await savePendingFire(fireData);
-      closeModal();
-      alert("⚠️ Falha na conexão. Registro salvo localmente e será sincronizado quando a conexão for restaurada.");
-      updatePendingCount();
+  // MODO NOVO REGISTRO — tenta servidor, com fallback para IndexedDB
+  try {
+    const res = await fetch("/fire", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": token },
+      body: JSON.stringify(fireData)
+    });
+
+    // Verifica se a resposta é JSON válido e não um redirect HTML
+    if (!respostaValida(res)) {
+      throw new Error("Resposta inválida do servidor (status " + res.status + ")");
     }
-  } else {
+
+    const r = await res.json();
+    if (r.error) { alert("❌ Erro: " + r.error); return; }
+    closeModal();
+    alert(`✅ Incêndio registrado!\nÁrea: ${r.area.toFixed(4)} ha\nID: #${r.id}`);
+    limparFormulario();
+    if (mapInitialized) loadFiresOnMap();
+  } catch (_) {
+    // Offline ou falha de rede — guarda localmente
     await savePendingFire(fireData);
     closeModal();
-    alert("📴 Modo offline. Registro salvo localmente e será sincronizado quando a conexão for restaurada.");
+    if (navigator.onLine) {
+      alert("⚠️ Falha na conexão. Registro salvo localmente e será sincronizado quando a conexão for restaurada.");
+    } else {
+      alert("📴 Modo offline. Registro salvo localmente e será sincronizado quando a conexão for restaurada.");
+    }
     updatePendingCount();
   }
 }
@@ -928,45 +957,70 @@ function limparFormulario() {
 }
 
 // ==================== DASHBOARD ====================
+function renderDashboardData(data, fromCache) {
+  document.getElementById("total-fires").textContent = data.total;
+  document.getElementById("total-area").textContent = (data.areaTotal || 0).toFixed(2);
+  const now = new Date();
+  const thisMonth = (data.rows || []).filter(r => {
+    const d = new Date(r.createdAt);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  document.getElementById("this-month").textContent = thisMonth;
+  document.getElementById("avg-area").textContent = data.total > 0 ? (data.areaTotal / data.total).toFixed(2) : "0.00";
+
+  const tbody = document.getElementById("fires-tbody");
+  if (!data.rows || data.rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#666;padding:24px;">Nenhum incêndio registrado.</td></tr>';
+    return;
+  }
+  const aviso = fromCache ? '<tr><td colspan="6" style="text-align:center;color:#e67e22;font-size:12px;padding:6px;">📴 A mostrar dados guardados — sem ligação ao servidor</td></tr>' : "";
+  tbody.innerHTML = aviso + data.rows.map(r => {
+    _editRows[r.id] = r;
+    const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
+    const nomeEquipe = d.nomeEquipe || r.team || "–";
+    const editBtn = role === "gestor"
+      ? `<button class="btn btn-sm btn-edit" onclick="editarRegistro(${r.id})">✏️ Editar</button>`
+      : "";
+    return `<tr>
+      <td>#${r.id}</td>
+      <td>${new Date(r.createdAt).toLocaleString("pt-BR")}</td>
+      <td title="${nomeEquipe}">${nomeEquipe}</td>
+      <td title="${d.municipio || "–"}">${d.municipio || "–"}</td>
+      <td>${r.area ? r.area.toFixed(2) : "N/A"}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        <a href="/report/${r.id}" target="_blank" class="btn btn-sm btn-secondary">📄 PDF</a>
+        ${editBtn}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
 async function loadDashboard() {
+  let data = null;
+  let fromCache = false;
+
   try {
     const res = await fetch("/dashboard", { headers: { "Authorization": token } });
-    const data = await res.json();
-    document.getElementById("total-fires").textContent = data.total;
-    document.getElementById("total-area").textContent = (data.areaTotal || 0).toFixed(2);
-    const now = new Date();
-    const thisMonth = (data.rows || []).filter(r => {
-      const d = new Date(r.createdAt);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-    document.getElementById("this-month").textContent = thisMonth;
-    document.getElementById("avg-area").textContent = data.total > 0 ? (data.areaTotal / data.total).toFixed(2) : "0.00";
-
-    const tbody = document.getElementById("fires-tbody");
-    if (!data.rows || data.rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#666;padding:24px;">Nenhum incêndio registrado.</td></tr>';
-      return;
+    if (respostaValida(res)) {
+      data = await res.json();
+      // Guarda no cache para uso offline futuro
+      await saveDashboardCache(data).catch(() => {});
     }
-    tbody.innerHTML = data.rows.map(r => {
-      _editRows[r.id] = r;
-      const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
-      const nomeEquipe = d.nomeEquipe || r.team || "–";
-      const editBtn = role === "gestor"
-        ? `<button class="btn btn-sm btn-edit" onclick="editarRegistro(${r.id})">✏️ Editar</button>`
-        : "";
-      return `<tr>
-        <td>#${r.id}</td>
-        <td>${new Date(r.createdAt).toLocaleString("pt-BR")}</td>
-        <td title="${nomeEquipe}">${nomeEquipe}</td>
-        <td title="${d.municipio || "–"}">${d.municipio || "–"}</td>
-        <td>${r.area ? r.area.toFixed(2) : "N/A"}</td>
-        <td style="display:flex;gap:4px;flex-wrap:wrap;">
-          <a href="/report/${r.id}" target="_blank" class="btn btn-sm btn-secondary">📄 PDF</a>
-          ${editBtn}
-        </td>
-      </tr>`;
-    }).join("");
-  } catch (e) { console.error(e); }
+  } catch (_) { /* offline */ }
+
+  // Fallback: usar cache do IndexedDB
+  if (!data) {
+    data = await getDashboardCache().catch(() => null);
+    fromCache = !!data;
+  }
+
+  if (!data) {
+    const tbody = document.getElementById("fires-tbody");
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#666;padding:24px;">📴 Sem conexão e sem dados guardados.</td></tr>';
+    return;
+  }
+
+  renderDashboardData(data, fromCache);
 }
 
 // ==================== EDITAR REGISTRO (gestor) ====================

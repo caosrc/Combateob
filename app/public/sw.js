@@ -1,5 +1,5 @@
-const CACHE_NAME  = "fogo-branco-v4";
-const TILE_CACHE  = "fogo-branco-tiles-v4";
+const CACHE_NAME  = "fogo-branco-v5";
+const TILE_CACHE  = "fogo-branco-tiles-v5";
 
 // Ouro Branco, MG
 const OB_LAT = -20.52;
