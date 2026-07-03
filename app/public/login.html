@@ -12,67 +12,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fogo Branco">
   <meta name="mobile-web-app-capable" content="yes">
-  <style>
-    /* ── Barra de progresso de instalação ── */
-    #install-progress {
-      display: none;
-      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-      background: #1a3a5c; color: #fff;
-      padding: 10px 16px;
-      flex-direction: column; gap: 4px;
-    }
-    #install-progress .ip-row {
-      display: flex; align-items: center; gap: 10px;
-    }
-    #install-progress .ip-bar-wrap {
-      background: rgba(255,255,255,0.25); border-radius: 4px;
-      height: 7px; overflow: hidden; flex: 1;
-    }
-    #install-progress .ip-bar {
-      background: #4fc3f7; height: 100%; width: 0%;
-      transition: width 0.3s ease;
-    }
-    #install-progress .ip-pct {
-      font-weight: 700; min-width: 40px; text-align: right; font-size: 13px;
-    }
-    #install-progress .ip-txt { font-size: 12px; }
-
-    /* ── Botão Instalar App ── */
-    .btn-install-app {
-      margin-top: 18px;
-      width: 100%;
-      background: linear-gradient(135deg, #1a3a5c, #2d6a9f);
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-      padding: 14px 10px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-      transition: opacity 0.2s;
-    }
-    .btn-install-app:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-install-app:active { opacity: 0.85; }
-    #install-hint {
-      font-size: 11px; color: #999; text-align: center; margin-top: 6px;
-    }
-  </style>
 </head>
 <body>
-
-<!-- BARRA DE PROGRESSO DE INSTALAÇÃO -->
-<div id="install-progress">
-  <div class="ip-row">
-    <span>📥</span>
-    <span class="ip-txt" id="ip-txt">Baixando mapa offline de Ouro Branco…</span>
-    <span class="ip-pct" id="ip-pct">0%</span>
-  </div>
-  <div class="ip-bar-wrap">
-    <div class="ip-bar" id="ip-bar"></div>
-  </div>
-</div>
 
 <div class="auth-container">
   <div class="auth-box">
@@ -94,14 +35,6 @@
         <span class="perfil-label">Gestor</span>
         <span class="perfil-sub">Acesso completo</span>
       </button>
-
-      <!-- Botão Instalar App (some após instalação) -->
-      <div id="install-section" style="display:none;">
-        <button class="btn-install-app" id="btn-instalar" onclick="instalarApp()">
-          📲 Instalar App
-        </button>
-        <p id="install-hint">Instale para usar sem internet, com mapa offline</p>
-      </div>
     </div>
 
     <!-- TELA 2: Escolha da equipe (gestor) -->
@@ -139,115 +72,11 @@
   // ──────────────────────────────────────────────────────────────────────
 
   let equipeSelecionada = "";
-  let deferredInstallPrompt = null;
 
-  // ── Detecta se o app já está instalado ─────────────────────────────────
-  function appJaInstalado() {
-    return window.matchMedia("(display-mode: standalone)").matches
-      || window.navigator.standalone === true
-      || localStorage.getItem("app_installed") === "true";
-  }
-
-  function mostrarBotaoInstalar() {
-    if (!appJaInstalado()) {
-      document.getElementById("install-section").style.display = "block";
-    }
-  }
-
-  // ── Captura o evento de instalação do navegador ────────────────────────
-  window.addEventListener("beforeinstallprompt", e => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    mostrarBotaoInstalar();
-  });
-
-  window.addEventListener("appinstalled", () => {
-    localStorage.setItem("app_installed", "true");
-    document.getElementById("install-section").style.display = "none";
-  });
-
-  // Em iOS/Safari standalone ou se já instalado, esconde o botão
-  if (appJaInstalado()) {
-    document.getElementById("install-section").style.display = "none";
-  } else {
-    // Mostra o botão mesmo sem o evento (iOS Safari, etc.)
-    // O evento beforeinstallprompt nem sempre dispara no iOS
-    mostrarBotaoInstalar();
-  }
-
-  // ── Service Worker: regista e ouve progresso ───────────────────────────
+  // ── Service Worker: regista (cacheia o app inteiro para uso offline) ──
+  // O navegador cuida de sugerir a instalação/atalho automaticamente.
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
-
-    navigator.serviceWorker.addEventListener("message", e => {
-      const { type, downloaded, total } = e.data || {};
-      const prog  = document.getElementById("install-progress");
-      const bar   = document.getElementById("ip-bar");
-      const pct   = document.getElementById("ip-pct");
-      const txt   = document.getElementById("ip-txt");
-
-      if (type === "TILES_PROGRESS" && prog) {
-        prog.style.display = "flex";
-        const p = total > 0 ? Math.round((downloaded / total) * 100) : 0;
-        if (bar) bar.style.width = p + "%";
-        if (pct) pct.textContent = p + "%";
-        if (txt) txt.textContent = `Baixando mapa offline… ${downloaded} / ${total} tiles`;
-      }
-      if (type === "TILES_CACHED" && prog) {
-        if (bar) bar.style.width = "100%";
-        if (pct) pct.textContent = "100%";
-        if (txt) txt.textContent = "✅ Mapa offline pronto! App funciona sem internet.";
-        localStorage.setItem("tiles_cached", "true");
-        setTimeout(() => { prog.style.display = "none"; }, 4000);
-      }
-    });
-  }
-
-  // ── Botão "Instalar App" ───────────────────────────────────────────────
-  async function instalarApp() {
-    const btn = document.getElementById("btn-instalar");
-    btn.disabled = true;
-    btn.textContent = "⏳ Instalando…";
-
-    // 1. Baixar e guardar token de combatente para uso offline
-    if (navigator.onLine) {
-      try {
-        const r = await fetch("/auth/combatente", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
-        });
-        const data = await r.json();
-        if (data.token) {
-          localStorage.setItem("combatente_token_offline", data.token);
-        }
-      } catch (_) {}
-    }
-
-    // 2. Ordenar ao SW que inicie o download dos tiles agora
-    try {
-      const reg = await navigator.serviceWorker.getRegistration();
-      const sw = reg && (reg.active || reg.installing || reg.waiting);
-      if (sw) sw.postMessage({ type: "START_TILE_DOWNLOAD" });
-    } catch (_) {}
-
-    // 3. Acionar prompt de instalação PWA
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      const { outcome } = await deferredInstallPrompt.userChoice;
-      deferredInstallPrompt = null;
-      if (outcome === "accepted") {
-        localStorage.setItem("app_installed", "true");
-        document.getElementById("install-section").style.display = "none";
-        return; // barra de progresso continuará visível via SW messages
-      }
-    } else {
-      // iOS ou já instalado: marca como instalado e inicia download
-      localStorage.setItem("app_installed", "true");
-      document.getElementById("install-section").style.display = "none";
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = "📲 Instalar App";
   }
 
   // ── Navegação de telas ─────────────────────────────────────────────────

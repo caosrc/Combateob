@@ -352,6 +352,17 @@
 <!-- ABA MAPA -->
 <div class="tab-content" id="tab-mapa" style="display:none;">
   <div id="map"></div>
+
+  <!-- BUSCA DE ENDEREÇO -->
+  <div class="map-search-bar">
+    <span class="map-search-icon">🔍</span>
+    <input type="text" id="endereco-input" placeholder="Digite a rua e o número (ex.: Rua das Flores, 123)"
+           autocomplete="off" oninput="buscarEnderecoInput(this.value)"
+           onfocus="if(this.value) buscarEnderecoInput(this.value)">
+    <button class="map-search-clear" id="endereco-clear-btn" style="display:none;" onclick="limparBuscaEndereco()">✕</button>
+    <div id="endereco-suggestions" class="endereco-suggestions" style="display:none;"></div>
+  </div>
+
   <div class="map-layer-switch">
     <button id="btn-layer-mapa" class="layer-btn active" onclick="setMapLayer('mapa')">🗺️ Rua</button>
     <button id="btn-layer-sat" class="layer-btn" onclick="setMapLayer('satelite')">🛰️ Satélite</button>
@@ -363,10 +374,45 @@
     <button class="map-gps-btn" onclick="loadFiresOnMap()" title="Atualizar registros" style="margin-top:8px;">
       🔄
     </button>
+    <button class="map-gps-btn" onclick="abrirMapaOffline()" title="Mapa Offline" style="margin-top:8px;">
+      💾
+    </button>
   </div>
   <div id="map-draw-confirm">
     <button id="btn-desenhar" class="btn btn-secondary" onclick="toggleDesenharPoligono()" style="flex:1;">✏️ Desenhar Polígono</button>
     <button class="btn btn-primary" onclick="confirmarDesenhoMapaPrincipal()" style="flex:1;">✅ Confirmar Área</button>
+  </div>
+</div>
+
+<!-- MODAL MAPA OFFLINE -->
+<div class="modal-overlay" id="modal-mapa-offline">
+  <div class="modal">
+    <div class="mo-header">
+      <h2 style="margin-bottom:0;">🗺️ Mapa Offline — Ouro Branco</h2>
+      <button class="mo-close" onclick="fecharMapaOffline()">✕</button>
+    </div>
+    <p class="mo-info">🌐 Com internet, o mapa carrega normalmente. Salve offline para usar sem conexão.</p>
+
+    <div class="mo-section">
+      <p class="mo-status" id="mo-status-mapa">📵 Mapa não salvo ainda. Sem internet o mapa ficará cinza.</p>
+      <button class="btn btn-primary" id="btn-salvar-mapa" onclick="salvarMapaOffline()">📥 Salvar mapa de Ouro Branco</button>
+      <div class="mo-progress" id="mo-progress-mapa" style="display:none;">
+        <div class="mo-bar-wrap"><div class="mo-bar" id="mo-bar-mapa"></div></div>
+        <span id="mo-pct-mapa">0%</span>
+      </div>
+      <p class="mo-desc">Cobre raio de 10 km ao redor do centro de Ouro Branco — MG (cidade + entorno imediato). O GPS funciona offline pelo hardware do aparelho.</p>
+    </div>
+
+    <div class="mo-section">
+      <h4>🛣️ Ruas e roteamento offline</h4>
+      <p class="mo-status" id="mo-status-ruas">📵 Ruas não salvas. Sem internet, a busca de endereço não vai funcionar.</p>
+      <button class="btn btn-secondary" id="btn-baixar-ruas" onclick="baixarRuasOffline()">📥 Baixar ruas e endereços</button>
+      <div class="mo-progress" id="mo-progress-ruas" style="display:none;">
+        <div class="mo-bar-wrap"><div class="mo-bar" id="mo-bar-ruas"></div></div>
+        <span id="mo-pct-ruas">0%</span>
+      </div>
+      <p class="mo-desc">Baixa a base de ruas/estradas (raio 40 km) da OpenStreetMap. Permite buscar endereços e calcular rotas sem internet.</p>
+    </div>
   </div>
 </div>
 

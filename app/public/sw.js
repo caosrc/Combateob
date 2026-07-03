@@ -68,9 +68,10 @@ async function fetchWithRetry(url, options = {}, retries = 3, delayMs = 600) {
 //   OSM (rua)      → z10 a z13  (z14 é cacheado on-demand ao usar o mapa)
 //   Satélite       → z10 a z12  (imagens pesadas; detalhe cacheado on-demand)
 // Isso reduz o pré-cache para ~550 tiles e evita o rate-limit do OSM.
-async function preloadOuroBrancoTiles() {
-  const latOff = OB_RADIUS_KM / 111.0;
-  const lngOff = OB_RADIUS_KM / (111.0 * Math.cos(OB_LAT * Math.PI / 180));
+async function preloadOuroBrancoTiles(radiusKm) {
+  const RADIUS = radiusKm || OB_RADIUS_KM;
+  const latOff = RADIUS / 111.0;
+  const lngOff = RADIUS / (111.0 * Math.cos(OB_LAT * Math.PI / 180));
 
   const north = OB_LAT + latOff;
   const south = OB_LAT - latOff;
@@ -84,7 +85,7 @@ async function preloadOuroBrancoTiles() {
   // Monta lista de todos os tiles a baixar
   const tiles = [];
 
-  for (let z = 10; z <= 13; z++) {           // OSM: z10–z13
+  for (let z = 10; z <= 15; z++) {           // OSM: z10–z15 (raio menor permite mais detalhe)
     const xMin = lngToTileX(west, z),  xMax = lngToTileX(east, z);
     const yMin = latToTileY(north, z), yMax = latToTileY(south, z);
     for (let x = xMin; x <= xMax; x++) {
@@ -94,7 +95,7 @@ async function preloadOuroBrancoTiles() {
     }
   }
 
-  for (let z = 10; z <= 12; z++) {           // Satélite: z10–z12
+  for (let z = 10; z <= 13; z++) {           // Satélite: z10–z13
     const xMin = lngToTileX(west, z),  xMax = lngToTileX(east, z);
     const yMin = latToTileY(north, z), yMax = latToTileY(south, z);
     for (let x = xMin; x <= xMax; x++) {
@@ -182,7 +183,7 @@ self.addEventListener("activate", e => {
 // ─── MESSAGE: download sob demanda (botão "Instalar App") ────────────────────
 self.addEventListener("message", e => {
   if (e.data && e.data.type === "START_TILE_DOWNLOAD") {
-    e.waitUntil(preloadOuroBrancoTiles());
+    e.waitUntil(preloadOuroBrancoTiles(e.data.radiusKm || OB_RADIUS_KM));
   }
 });
 

@@ -1160,25 +1160,211 @@ if ("serviceWorker" in navigator) {
   // Ouve mensagens do service worker (progresso do mapa offline)
   navigator.serviceWorker.addEventListener("message", e => {
     const { type, downloaded, total } = e.data || {};
+
+    // Banner geral (compatibilidade)
     const banner = document.getElementById("tiles-progress-banner");
     const bar    = document.getElementById("tiles-progress-bar");
     const pct    = document.getElementById("tiles-progress-pct");
     const txt    = document.getElementById("tiles-progress-text");
 
-    if (type === "TILES_PROGRESS" && banner) {
-      banner.style.display = "flex";
+    // Barra dentro do modal "Mapa Offline"
+    const moBar = document.getElementById("mo-bar-mapa");
+    const moPct = document.getElementById("mo-pct-mapa");
+    const moProg = document.getElementById("mo-progress-mapa");
+
+    if (type === "TILES_PROGRESS") {
       const p = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+      if (banner) { banner.style.display = "flex"; }
       if (bar) bar.style.width = p + "%";
       if (pct) pct.textContent = p + "%";
       if (txt) txt.textContent = `Instalando mapa offline… ${downloaded} / ${total} tiles`;
+      if (moProg) moProg.style.display = "flex";
+      if (moBar) moBar.style.width = p + "%";
+      if (moPct) moPct.textContent = p + "%";
     }
-    if (type === "TILES_CACHED" && banner) {
+    if (type === "TILES_CACHED") {
       if (bar) bar.style.width = "100%";
       if (pct) pct.textContent = "100%";
       if (txt) txt.textContent = "✅ Mapa offline instalado – funciona sem internet!";
-      setTimeout(() => { banner.style.display = "none"; }, 4000);
+      if (banner) setTimeout(() => { banner.style.display = "none"; }, 4000);
+      localStorage.setItem("mapa_offline_salvo", new Date().toISOString());
+      atualizarStatusMapaOffline();
     }
   });
+}
+
+// ==================== MAPA OFFLINE (modal) ====================
+const OB_CENTRO = { lat: -20.52, lng: -43.69 };
+
+function abrirMapaOffline() {
+  atualizarStatusMapaOffline();
+  document.getElementById("modal-mapa-offline").classList.add("active");
+}
+
+function fecharMapaOffline() {
+  document.getElementById("modal-mapa-offline").classList.remove("active");
+}
+
+async function atualizarStatusMapaOffline() {
+  const statusMapa = document.getElementById("mo-status-mapa");
+  const btnMapa = document.getElementById("btn-salvar-mapa");
+  const mapaSalvo = localStorage.getItem("mapa_offline_salvo");
+  if (statusMapa) {
+    statusMapa.textContent = mapaSalvo
+      ? `✅ Mapa salvo offline (${new Date(mapaSalvo).toLocaleDateString("pt-BR")}).`
+      : "📵 Mapa não salvo ainda. Sem internet o mapa ficará cinza.";
+  }
+  if (btnMapa) btnMapa.textContent = mapaSalvo ? "🔄 Atualizar mapa salvo" : "📥 Salvar mapa de Ouro Branco";
+
+  const statusRuas = document.getElementById("mo-status-ruas");
+  const btnRuas = document.getElementById("btn-baixar-ruas");
+  try {
+    const idx = await getStreetsIndex();
+    if (statusRuas) {
+      statusRuas.textContent = idx
+        ? `✅ ${idx.features.length} ruas salvas (${new Date(idx.savedAt).toLocaleDateString("pt-BR")}).`
+        : "📵 Ruas não salvas. Sem internet, a busca de endereço não vai funcionar.";
+    }
+    if (btnRuas) btnRuas.textContent = idx ? "🔄 Atualizar ruas salvas" : "📥 Baixar ruas e endereços";
+  } catch (_) {}
+}
+
+async function salvarMapaOffline() {
+  if (!navigator.onLine) { alert("📴 Conecte-se à internet para salvar o mapa offline."); return; }
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sw = reg && (reg.active || reg.installing || reg.waiting);
+    if (!sw) { alert("Aguarde o app terminar de carregar e tente novamente."); return; }
+    document.getElementById("mo-progress-mapa").style.display = "flex";
+    sw.postMessage({ type: "START_TILE_DOWNLOAD", radiusKm: 10 });
+  } catch (e) {
+    alert("Erro ao iniciar download do mapa: " + e.message);
+  }
+}
+
+async function baixarRuasOffline() {
+  if (!navigator.onLine) { alert("📴 Conecte-se à internet para baixar as ruas."); return; }
+  const btn = document.getElementById("btn-baixar-ruas");
+  const prog = document.getElementById("mo-progress-ruas");
+  const bar = document.getElementById("mo-bar-ruas");
+  const pct = document.getElementById("mo-pct-ruas");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Baixando..."; }
+  if (prog) { prog.style.display = "flex"; }
+  if (bar) bar.style.width = "10%";
+  if (pct) pct.textContent = "10%";
+
+  try {
+    const query = `[out:json][timeout:90];(way["highway"]["name"](around:40000,${OB_CENTRO.lat},${OB_CENTRO.lng}););out center;`;
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: "data=" + encodeURIComponent(query)
+    });
+    if (!res.ok) throw new Error("Servidor de mapas indisponível (" + res.status + ")");
+    if (bar) bar.style.width = "70%";
+    if (pct) pct.textContent = "70%";
+    const data = await res.json();
+
+    const seen = new Set();
+    const features = [];
+    (data.elements || []).forEach(el => {
+      if (!el.tags || !el.tags.name || !el.center) return;
+      const key = el.tags.name.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      features.push({ name: el.tags.name, lat: el.center.lat, lng: el.center.lon });
+    });
+
+    await saveStreetsIndex(features);
+    if (bar) bar.style.width = "100%";
+    if (pct) pct.textContent = "100%";
+    alert(`✅ ${features.length} ruas salvas para uso offline!`);
+  } catch (e) {
+    alert("❌ Erro ao baixar ruas: " + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; }
+    setTimeout(() => { if (prog) prog.style.display = "none"; }, 1500);
+    atualizarStatusMapaOffline();
+  }
+}
+
+// ==================== BUSCA DE ENDEREÇO ====================
+let _enderecoDebounce = null;
+let enderecoMarker = null;
+
+function limparBuscaEndereco() {
+  document.getElementById("endereco-input").value = "";
+  document.getElementById("endereco-clear-btn").style.display = "none";
+  document.getElementById("endereco-suggestions").style.display = "none";
+}
+
+function buscarEnderecoInput(valor) {
+  const clearBtn = document.getElementById("endereco-clear-btn");
+  const box = document.getElementById("endereco-suggestions");
+  clearBtn.style.display = valor ? "block" : "none";
+
+  if (_enderecoDebounce) clearTimeout(_enderecoDebounce);
+  if (!valor || valor.trim().length < 3) { box.style.display = "none"; return; }
+
+  _enderecoDebounce = setTimeout(async () => {
+    let resultados = [];
+    if (navigator.onLine) {
+      resultados = await buscarEnderecoOnline(valor);
+    }
+    if (resultados.length === 0) {
+      resultados = await buscarEnderecoOffline(valor);
+    }
+    renderSugestoesEndereco(resultados);
+  }, 400);
+}
+
+async function buscarEnderecoOnline(valor) {
+  try {
+    const viewbox = `${OB_CENTRO.lng - 0.5},${OB_CENTRO.lat + 0.5},${OB_CENTRO.lng + 0.5},${OB_CENTRO.lat - 0.5}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=br&viewbox=${viewbox}&bounded=1&q=${encodeURIComponent(valor + ", Ouro Branco, MG")}`;
+    const res = await fetch(url, { headers: { "Accept-Language": "pt-BR" } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.map(d => ({ label: d.display_name, lat: parseFloat(d.lat), lng: parseFloat(d.lon) }));
+  } catch (_) { return []; }
+}
+
+async function buscarEnderecoOffline(valor) {
+  try {
+    const idx = await getStreetsIndex();
+    if (!idx || !idx.features) return [];
+    const q = valor.toLowerCase();
+    return idx.features
+      .filter(f => f.name.toLowerCase().includes(q))
+      .slice(0, 8)
+      .map(f => ({ label: `${f.name} (offline)`, lat: f.lat, lng: f.lng }));
+  } catch (_) { return []; }
+}
+
+function renderSugestoesEndereco(resultados) {
+  const box = document.getElementById("endereco-suggestions");
+  if (!resultados || resultados.length === 0) {
+    box.innerHTML = `<div class="endereco-item endereco-vazio">Nenhum endereço encontrado</div>`;
+    box.style.display = "block";
+    return;
+  }
+  box.innerHTML = resultados.map((r, i) =>
+    `<div class="endereco-item" onclick="selecionarEndereco(${i})">📍 ${r.label}</div>`
+  ).join("");
+  window._enderecoResultados = resultados;
+  box.style.display = "block";
+}
+
+function selecionarEndereco(i) {
+  const r = (window._enderecoResultados || [])[i];
+  if (!r || !mainMap) return;
+  document.getElementById("endereco-input").value = r.label;
+  document.getElementById("endereco-suggestions").style.display = "none";
+
+  if (enderecoMarker) mainMap.removeLayer(enderecoMarker);
+  enderecoMarker = L.marker([r.lat, r.lng], {
+    icon: L.divIcon({ className: "", html: "📍", iconSize: [28, 28], iconAnchor: [14, 28] })
+  }).addTo(mainMap).bindPopup(r.label).openPopup();
+  mainMap.setView([r.lat, r.lng], 16);
 }
 
 let _deferredInstallPrompt = null;
