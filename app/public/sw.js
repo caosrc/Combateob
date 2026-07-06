@@ -124,14 +124,16 @@ async function preloadOuroBrancoTiles(radiusKm) {
 
 // ─── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', e => {
+  self.skipWaiting(); // ativa imediatamente sem esperar fechar abas
   e.waitUntil(
     caches.open(APP_CACHE).then(cache =>
       Promise.all(
         APP_SHELL.map(url =>
-          cache.add(url).catch(() => {/* tolera falhas em arquivos opcionais */})
+          cache.add(new Request(url, { cache: 'reload' }))
+               .catch(() => {/* tolera falhas em arquivos opcionais */})
         )
       )
-    ).then(() => self.skipWaiting())
+    )
   );
 });
 
@@ -148,12 +150,14 @@ self.addEventListener('activate', e => {
   );
 });
 
-// ─── Mensagens (download mapa offline) ────────────────────────────────────────
+// ─── Mensagens (download mapa offline + atualização imediata) ─────────────────
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'START_TILE_DOWNLOAD') {
     // waitUntil garante que o SW não é encerrado no meio do download
     e.waitUntil(preloadOuroBrancoTiles(e.data.radiusKm));
   }
+  // Ativa novo SW imediatamente quando o app pede (após updatefound)
+  if (e.data?.tipo === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────

@@ -1209,7 +1209,20 @@ updateOnlineStatus();
 
 // ==================== SERVICE WORKER + PWA ====================
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch(console.error);
+  navigator.serviceWorker.register("/sw.js").then(reg => {
+    // Verifica atualizações a cada 30 minutos
+    setInterval(() => reg.update(), 30 * 60 * 1000);
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // Ativa o novo SW imediatamente (sem precisar fechar e abrir o app)
+          newWorker.postMessage({ tipo: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }).catch(console.error);
 
   // Ouve mensagens do service worker (progresso do mapa offline)
   navigator.serviceWorker.addEventListener("message", e => {
@@ -1421,11 +1434,25 @@ function selecionarEndereco(i) {
   mainMap.setView([r.lat, r.lng], 16);
 }
 
-let _deferredInstallPrompt = null;
+// Usa o prompt capturado antes dos scripts (inline no HTML) ou captura agora
+let _deferredInstallPrompt = window.__pwaInstallPrompt__ || null;
+
+if (_deferredInstallPrompt) {
+  const banner = document.getElementById("pwa-install-banner");
+  if (banner) banner.style.display = "flex";
+}
 
 window.addEventListener("beforeinstallprompt", e => {
   e.preventDefault();
   _deferredInstallPrompt = e;
+  window.__pwaInstallPrompt__ = e;
+  const banner = document.getElementById("pwa-install-banner");
+  if (banner) banner.style.display = "flex";
+});
+
+// Caso o prompt já tenha sido capturado antes do app.js carregar
+window.addEventListener("pwa-prompt-ready", () => {
+  _deferredInstallPrompt = window.__pwaInstallPrompt__;
   const banner = document.getElementById("pwa-install-banner");
   if (banner) banner.style.display = "flex";
 });
