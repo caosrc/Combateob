@@ -1,5 +1,5 @@
 // ── Fogo Branco — Service Worker ──────────────────────────────────────────────
-const VERSION     = 'v9-2026'
+const VERSION     = 'v10-2026'
 const APP_CACHE   = `fogo-branco-app-${VERSION}`
 const TILES_CACHE = 'fogo-branco-tiles-osm'        // persiste entre versões
 const SAT_CACHE   = 'fogo-branco-tiles-sat'         // persiste entre versões
@@ -17,9 +17,11 @@ const APP_SHELL = [
   '/index.html',
   '/login.html',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/apple-touch-icon.png',
+  '/icon-192-any.png',
+  '/icon-192-maskable.png',
+  '/icon-512-any.png',
+  '/icon-512-maskable.png',
+  '/apple-touch-icon-180.png',
   '/favicon-32.png',
   '/style.css?v=12',
   '/app.js?v=12',
