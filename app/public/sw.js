@@ -1,5 +1,5 @@
 // ── Fogo Branco — Service Worker ──────────────────────────────────────────────
-const VERSION     = 'v12-2026'
+const VERSION     = 'v13-2026'
 const APP_CACHE   = `fogo-branco-app-${VERSION}`
 const TILES_CACHE = 'fogo-branco-tiles-osm'        // persiste entre versões
 const SAT_CACHE   = 'fogo-branco-tiles-sat'         // persiste entre versões

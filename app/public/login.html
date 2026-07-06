@@ -172,7 +172,14 @@
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true;
 
-    if (isStandalone) return; // não mostra gate se já está instalado
+    if (isStandalone) {
+      localStorage.setItem('pwa_installed', '1');
+      return; // não mostra gate se já está instalado
+    }
+
+    // Já instalou antes (flag persistente) → não mostra o gate de novo,
+    // evita oferecer instalação duplicada e criar um segundo atalho
+    if (localStorage.getItem('pwa_installed') === '1') return;
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
@@ -201,6 +208,7 @@
     // Ouve "appinstalled" — pode vir desta página ou de index.html
     window.addEventListener('appinstalled', function() {
       localStorage.setItem('pwa_just_installed', '1');
+      localStorage.setItem('pwa_installed', '1');
       igAndroid.style.display = 'none';
       igIOS.style.display     = 'none';
       igSuccess.style.display = 'block';

@@ -1459,8 +1459,18 @@ function selecionarEndereco(i) {
   mainMap.setView([r.lat, r.lng], 16);
 }
 
+// Já instalado (standalone) ou já instalou antes (flag persistente)?
+// Nunca mostra o banner de novo — evita oferecer instalação duplicada
+// e criar um segundo atalho na tela inicial.
+const _pwaJaInstalado =
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true ||
+  localStorage.getItem('pwa_installed') === '1';
+
+if (_pwaJaInstalado) localStorage.setItem('pwa_installed', '1');
+
 // Usa o prompt capturado antes dos scripts (inline no HTML) ou captura agora
-let _deferredInstallPrompt = window.__pwaInstallPrompt__ || null;
+let _deferredInstallPrompt = _pwaJaInstalado ? null : (window.__pwaInstallPrompt__ || null);
 
 if (_deferredInstallPrompt) {
   const banner = document.getElementById("pwa-install-banner");
@@ -1469,6 +1479,7 @@ if (_deferredInstallPrompt) {
 
 window.addEventListener("beforeinstallprompt", e => {
   e.preventDefault();
+  if (_pwaJaInstalado) return; // já instalado — não oferece de novo
   _deferredInstallPrompt = e;
   window.__pwaInstallPrompt__ = e;
   const banner = document.getElementById("pwa-install-banner");
@@ -1477,6 +1488,7 @@ window.addEventListener("beforeinstallprompt", e => {
 
 // Caso o prompt já tenha sido capturado antes do app.js carregar
 window.addEventListener("pwa-prompt-ready", () => {
+  if (_pwaJaInstalado) return;
   _deferredInstallPrompt = window.__pwaInstallPrompt__;
   const banner = document.getElementById("pwa-install-banner");
   if (banner) banner.style.display = "flex";
@@ -1500,6 +1512,7 @@ function fecharBannerPWA() {
 window.addEventListener("appinstalled", () => {
   // Seta flag para auto-download de tiles na próxima abertura (standalone)
   localStorage.setItem('pwa_just_installed', '1');
+  localStorage.setItem('pwa_installed', '1');
   const banner = document.getElementById("pwa-install-banner");
   if (banner) banner.style.display = "none";
 });
