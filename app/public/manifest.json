@@ -3,7 +3,7 @@
   "short_name": "Fogo Branco",
   "description": "Sistema de Combate a Incêndios Florestais",
   "id": "/",
-  "start_url": "/login.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],

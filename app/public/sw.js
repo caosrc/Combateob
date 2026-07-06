@@ -1,5 +1,5 @@
 // ── Fogo Branco — Service Worker ──────────────────────────────────────────────
-const VERSION     = 'v11-2026'
+const VERSION     = 'v12-2026'
 const APP_CACHE   = `fogo-branco-app-${VERSION}`
 const TILES_CACHE = 'fogo-branco-tiles-osm'        // persiste entre versões
 const SAT_CACHE   = 'fogo-branco-tiles-sat'         // persiste entre versões
@@ -256,10 +256,12 @@ self.addEventListener('fetch', e => {
         } catch (_) {
           const cached = await caches.match(e.request);
           if (cached) return cached;
-          // fallback para shell
+          // fallback para o app shell — index.html decide via JS se
+          // redireciona para /login.html (login não é servido por HTTP redirect
+          // para não quebrar a instalação do PWA)
           return (
-            (await caches.match('/login.html')) ||
             (await caches.match('/index.html')) ||
+            (await caches.match('/login.html')) ||
             new Response('Offline', { status: 503 })
           );
         }
