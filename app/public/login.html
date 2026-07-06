@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -27,6 +27,72 @@
     window.dispatchEvent(new Event('pwa-prompt-ready'));
   });
 </script>
+
+<!-- ══════════════════════════════════════════════════════════
+     TELA DE INSTALAÇÃO — aparece antes do login na primeira
+     visita em Android/iOS quando o app ainda não está instalado.
+     Após instalação, todas as dependências e o mapa offline
+     são baixados automaticamente em segundo plano.
+     ══════════════════════════════════════════════════════════ -->
+<div id="install-gate" class="install-gate" style="display:none;" role="dialog" aria-modal="true" aria-label="Instalar Fogo Branco">
+
+  <!-- Fundo decorativo (visível na área escura acima do card) -->
+  <div class="install-gate-bg" aria-hidden="true">
+    <span class="install-gate-bg-flame">🔥</span>
+    <span>Fogo Branco</span>
+  </div>
+
+  <!-- Card branco deslizante -->
+  <div class="install-gate-card">
+    <img src="icon-512.png" class="install-gate-icon" alt="Ícone Fogo Branco">
+    <h2 class="install-gate-title">Fogo Branco</h2>
+    <p class="install-gate-desc">Sistema de Combate a Incêndios Florestais</p>
+
+    <ul class="install-features" aria-label="Recursos do app">
+      <li>📵 Funciona sem internet</li>
+      <li>🗺️ Mapa offline de Ouro Branco</li>
+      <li>📋 Registros sincronizados automaticamente</li>
+    </ul>
+
+    <!-- Painel Android: aparece quando o browser suporta instalação nativa -->
+    <div id="ig-android" style="display:none;">
+      <button class="install-gate-btn" onclick="instalarApp()">
+        ⬇️&nbsp; Instalar no celular
+      </button>
+      <p style="font-size:12px; color:#aaa; margin-bottom:4px;">
+        Após instalar, o mapa e os recursos offline são baixados automaticamente.
+      </p>
+    </div>
+
+    <!-- Painel iOS: share → Adicionar à Tela de Início -->
+    <div id="ig-ios" style="display:none;">
+      <div class="install-ios-wrap">
+        <p class="install-ios-title">Instale no iPhone / iPad:</p>
+        <div class="install-ios-step">
+          <span class="install-ios-num">1</span>
+          <span>Toque no botão <strong>Compartilhar</strong> (ícone 📤 na barra do Safari)</span>
+        </div>
+        <div class="install-ios-step">
+          <span class="install-ios-num">2</span>
+          <span>Selecione <strong>"Adicionar à Tela de Início"</strong></span>
+        </div>
+        <div class="install-ios-step">
+          <span class="install-ios-num">3</span>
+          <span>Abra o app instalado — o mapa offline é baixado automaticamente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensagem de sucesso após aceitar instalação no Android -->
+    <div id="ig-success" style="display:none;" class="install-success-msg">
+      ✅ Instalado! Preparando modo offline…
+    </div>
+
+    <button class="install-gate-skip-btn" onclick="continuarSemInstalar()">
+      Continuar no navegador
+    </button>
+  </div>
+</div>
 
 <div class="auth-container">
   <div class="auth-box">
@@ -87,9 +153,85 @@
   let equipeSelecionada = "";
 
   // ── Service Worker: regista (cacheia o app inteiro para uso offline) ──
-  // O navegador cuida de sugerir a instalação/atalho automaticamente.
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // LÓGICA DE INSTALAÇÃO PWA
+  // ── Detecta ambiente e decide se mostra a tela de instalação ──────────
+  // ══════════════════════════════════════════════════════════════════════
+  (function initInstallGate() {
+    const gate        = document.getElementById('install-gate');
+    const igAndroid   = document.getElementById('ig-android');
+    const igIOS       = document.getElementById('ig-ios');
+    const igSuccess   = document.getElementById('ig-success');
+
+    // Já está instalado (modo standalone)?  → pula direto pro login
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true;
+
+    if (isStandalone) return; // não mostra gate se já está instalado
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    // iOS: não existe evento beforeinstallprompt — mostramos instruções manuais
+    if (isIOS) {
+      gate.style.display = 'flex';
+      igIOS.style.display = 'block';
+      return;
+    }
+
+    // Android / Chrome: aguarda o evento beforeinstallprompt
+    // O inline script no <head> já captura o evento cedo em window.__pwaInstallPrompt__
+    function mostrarGateAndroid() {
+      gate.style.display = 'flex';
+      igAndroid.style.display = 'block';
+    }
+
+    // Se o prompt já foi capturado antes deste script rodar
+    if (window.__pwaInstallPrompt__) {
+      mostrarGateAndroid();
+    }
+
+    // Caso capture depois (browser pode demorar alguns segundos)
+    window.addEventListener('pwa-prompt-ready', mostrarGateAndroid);
+
+    // Ouve "appinstalled" — pode vir desta página ou de index.html
+    window.addEventListener('appinstalled', function() {
+      localStorage.setItem('pwa_just_installed', '1');
+      igAndroid.style.display = 'none';
+      igIOS.style.display     = 'none';
+      igSuccess.style.display = 'block';
+      // Chrome normalmente fecha esta aba e abre o PWA automaticamente.
+      // O setTimeout é só um fallback para redirecionar se isso não acontecer.
+      setTimeout(function() {
+        gate.style.display = 'none';
+      }, 3000);
+    });
+  })();
+
+  // ── Ações chamadas pela tela de instalação ─────────────────────────────
+  function instalarApp() {
+    const prompt = window.__pwaInstallPrompt__;
+    if (!prompt) return;
+    prompt.prompt();
+    prompt.userChoice.then(function(choice) {
+      window.__pwaInstallPrompt__ = null;
+      if (choice.outcome === 'accepted') {
+        localStorage.setItem('pwa_just_installed', '1');
+        document.getElementById('ig-android').style.display  = 'none';
+        document.getElementById('ig-success').style.display  = 'block';
+      } else {
+        // Usuário recusou → vai direto pro login
+        continuarSemInstalar();
+      }
+    }).catch(continuarSemInstalar);
+  }
+
+  function continuarSemInstalar() {
+    document.getElementById('install-gate').style.display = 'none';
   }
 
   // ── Navegação de telas ─────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 // ── Fogo Branco — Service Worker ──────────────────────────────────────────────
-const VERSION     = 'v8-2026'
+const VERSION     = 'v9-2026'
 const APP_CACHE   = `fogo-branco-app-${VERSION}`
 const TILES_CACHE = 'fogo-branco-tiles-osm'        // persiste entre versões
 const SAT_CACHE   = 'fogo-branco-tiles-sat'         // persiste entre versões
@@ -21,8 +21,8 @@ const APP_SHELL = [
   '/icon-512.png',
   '/apple-touch-icon.png',
   '/favicon-32.png',
-  '/style.css?v=11',
-  '/app.js?v=11',
+  '/style.css?v=12',
+  '/app.js?v=12',
   '/db.js',
 ];
 
@@ -31,6 +31,7 @@ const EXTERNAL_ASSETS = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css',
   'https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js',
+  'https://unpkg.com/leaflet.heat/dist/leaflet-heat.js', // heatmap offline
 ];
 
 // ─── Tile math ────────────────────────────────────────────────────────────────
@@ -127,17 +128,32 @@ async function preloadOuroBrancoTiles(radiusKm) {
 }
 
 // ─── Install ──────────────────────────────────────────────────────────────────
+// Cacheia TUDO durante o install: shell local + bibliotecas externas (Leaflet).
+// Isso garante que o app funciona 100% offline logo após a primeira instalação.
 self.addEventListener('install', e => {
   self.skipWaiting(); // ativa imediatamente sem esperar fechar abas
   e.waitUntil(
-    caches.open(APP_CACHE).then(cache =>
-      Promise.all(
-        APP_SHELL.map(url =>
-          cache.add(new Request(url, { cache: 'reload' }))
-               .catch(() => {/* tolera falhas em arquivos opcionais */})
+    Promise.all([
+      // 1. Shell do app (HTML, CSS, JS, ícones)
+      caches.open(APP_CACHE).then(cache =>
+        Promise.all(
+          APP_SHELL.map(url =>
+            cache.add(new Request(url, { cache: 'reload' }))
+                 .catch(() => {})
+          )
         )
-      )
-    )
+      ),
+      // 2. Bibliotecas externas (Leaflet CSS + JS, leaflet-draw)
+      //    Cacheadas agora para o mapa funcionar offline desde o 1º uso.
+      caches.open(ASSETS_CACHE).then(cache =>
+        Promise.all(
+          EXTERNAL_ASSETS.map(url =>
+            cache.add(new Request(url, { cache: 'reload', mode: 'cors' }))
+                 .catch(() => {})
+          )
+        )
+      ),
+    ])
   );
 });
 

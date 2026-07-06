@@ -22,14 +22,16 @@ function atualizarBadgeEquipe() {
 atualizarBadgeEquipe();
 
 function logout() {
-  // Mantém token offline e flag de instalação para o app continuar a funcionar sem internet
-  const tokenOffline = localStorage.getItem("combatente_token_offline");
-  const installed    = localStorage.getItem("app_installed");
-  const tilesCached  = localStorage.getItem("tiles_cached");
+  // Mantém flags críticas para o app continuar a funcionar sem internet
+  const tokenOffline   = localStorage.getItem("combatente_token_offline");
+  const installed      = localStorage.getItem("app_installed");
+  const tilesCached    = localStorage.getItem("tiles_cached");
+  const justInstalled  = localStorage.getItem("pwa_just_installed"); // auto-download de tiles
   localStorage.clear();
-  if (tokenOffline) localStorage.setItem("combatente_token_offline", tokenOffline);
-  if (installed)    localStorage.setItem("app_installed", installed);
-  if (tilesCached)  localStorage.setItem("tiles_cached", tilesCached);
+  if (tokenOffline)  localStorage.setItem("combatente_token_offline", tokenOffline);
+  if (installed)     localStorage.setItem("app_installed", installed);
+  if (tilesCached)   localStorage.setItem("tiles_cached", tilesCached);
+  if (justInstalled) localStorage.setItem("pwa_just_installed", justInstalled);
   window.location.href = "/login.html";
 }
 
@@ -1222,6 +1224,29 @@ if ("serviceWorker" in navigator) {
         }
       });
     });
+
+    // ── Auto-download do mapa offline na 1ª abertura após instalação ──────
+    // Quando o usuário instala o PWA, marcamos 'pwa_just_installed'.
+    // Na próxima abertura do app (em standalone), baixamos os tiles
+    // automaticamente para que o mapa funcione offline sem intervenção.
+    if (localStorage.getItem('pwa_just_installed')) {
+      localStorage.removeItem('pwa_just_installed');
+      // Aguarda o SW estar ativo antes de disparar o download
+      const triggerTileDownload = () => {
+        navigator.serviceWorker.getRegistration().then(r => {
+          const sw = r && (r.active || r.installing || r.waiting);
+          if (!sw) return;
+          if (localStorage.getItem('mapa_offline_salvo')) return; // já tem mapa
+          sw.postMessage({ type: 'START_TILE_DOWNLOAD', radiusKm: 40 });
+          const banner = document.getElementById('tiles-progress-banner');
+          const txt    = document.getElementById('tiles-progress-text');
+          if (banner) banner.style.display = 'flex';
+          if (txt)    txt.textContent = '📥 Preparando mapa para uso offline…';
+        }).catch(() => {});
+      };
+      // Dá 4 s para o SW ativar completamente
+      setTimeout(triggerTileDownload, 4000);
+    }
   }).catch(console.error);
 
   // Ouve mensagens do service worker (progresso do mapa offline)
@@ -1473,6 +1498,8 @@ function fecharBannerPWA() {
 }
 
 window.addEventListener("appinstalled", () => {
+  // Seta flag para auto-download de tiles na próxima abertura (standalone)
+  localStorage.setItem('pwa_just_installed', '1');
   const banner = document.getElementById("pwa-install-banner");
   if (banner) banner.style.display = "none";
 });
