@@ -261,7 +261,7 @@ async function loadFiresOnMap() {
 
   let data = null;
   try {
-    const res = await fetch("/dashboard");
+    const res = await fetch("/dashboard", { headers: { "Authorization": token } });
     if (respostaValida(res)) {
       data = await res.json();
       // Atualiza o cache local com dados frescos

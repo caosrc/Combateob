@@ -1,42 +1,43 @@
 # Fogo Branco — Sistema de Combate a Incêndios Florestais
 
-Aplicação web de gestão de brigadas de combate a incêndios florestais (Incendio v3).
+## Visão Geral
+PWA (Progressive Web App) para registro e gestão de incêndios florestais na região de Ouro Branco/MG. Funciona 100% offline após a primeira carga.
 
 ## Stack
-- **Backend:** Node.js + Express
-- **Base de dados:** SQLite (`app/db.sqlite`)
-- **Autenticação:** JWT (usa `SESSION_SECRET` do ambiente ou chave padrão)
-- **Frontend:** HTML/CSS/JS puro (PWA com service worker)
-- **Exportação:** PDF (pdfkit), Excel (exceljs/xlsx), KMZ (archiver + turf)
+- **Backend**: Node.js + Express + SQLite (`sqlite3`)
+- **Frontend**: HTML/CSS/JS vanilla + Leaflet.js
+- **Offline**: Service Worker (cache-first tiles, stale-while-revalidate shell) + IndexedDB (fila de pendentes)
+- **Auth**: JWT com suporte a tokens locais offline (base64 payload + `.local` sufixo)
+- **Exports**: PDF (pdfkit), Excel (exceljs), KMZ (archiver + @turf/turf)
+
+## Como rodar
+```bash
+cd app && npm install && node server.js
+```
+Workflow configurado: `cd app && node server.js` (porta 5000)
+
+## Usuários padrão (criados se o banco estiver vazio)
+- `admin` / `admin123`
+- `brigada1` / `brigada123`
+
+## Acesso offline (combatente)
+- Sem senha — gera token local automaticamente
+- Gestor: senha `106106`, equipes válidas: Defesa Civil, IEF, Carcará, AMDA Gerdau, AMDA IEF, CBMMG
 
 ## Estrutura
 ```
 app/
-  server.js        # servidor Express + todas as rotas da API
-  package.json
-  public/          # frontend estático (HTML, CSS, JS, ícones)
-  uploads/         # ficheiros enviados pelos utilizadores
-  db.sqlite        # base de dados SQLite (criada automaticamente)
+  server.js          # API Express + SQLite
+  public/
+    index.html       # App principal (tabs: Registrar / Mapa / Dashboard)
+    login.html       # Tela de login (combatente / gestor)
+    app.js           # Lógica principal do frontend
+    db.js            # IndexedDB (fila offline, cache dashboard, ruas)
+    sw.js            # Service Worker (cache tiles OSM/satélite, shell SPA)
+    style.css        # Estilos
+    manifest.json    # PWA manifest
 ```
 
-## Como executar
-```bash
-cd app && node server.js
-```
-O servidor inicia na porta `5000` (ou `PORT` se definida no ambiente).
-
-## Funcionalidades
-- Login com dois perfis: **Combatente** (registo + mapa) e **Gestor** (acesso completo)
-- Registo de ocorrências de incêndio com geolocalização
-- Dashboard de gestão
-- Exportação de relatórios em PDF, Excel e KMZ
-- PWA (instalável em dispositivos móveis)
-
-## Variáveis de ambiente
-| Variável | Descrição |
-|---|---|
-| `SESSION_SECRET` / `JWT_SECRET` | Chave para assinar tokens JWT |
-| `PORT` | Porta do servidor (padrão: 5000) |
-
-## Preferências do utilizador
-- Responder sempre em português.
+## User preferences
+- Projeto em português (pt-BR)
+- Manter estrutura existente do projeto
