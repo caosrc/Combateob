@@ -1,5 +1,5 @@
 // ── Fogo Branco — Service Worker ──────────────────────────────────────────────
-const VERSION     = 'v7-2026'
+const VERSION     = 'v8-2026'
 const APP_CACHE   = `fogo-branco-app-${VERSION}`
 const TILES_CACHE = 'fogo-branco-tiles-osm'        // persiste entre versões
 const SAT_CACHE   = 'fogo-branco-tiles-sat'         // persiste entre versões
@@ -11,6 +11,7 @@ const OB_LNG = -43.69;
 const OB_RADIUS_KM = 40;
 
 // ─── App shell ───────────────────────────────────────────────────────────────
+// Tudo que o app precisa para ABRIR offline com a mesma aparência do online
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -20,6 +21,9 @@ const APP_SHELL = [
   '/icon-512.png',
   '/apple-touch-icon.png',
   '/favicon-32.png',
+  '/style.css?v=11',
+  '/app.js?v=11',
+  '/db.js',
 ];
 
 const EXTERNAL_ASSETS = [
@@ -246,14 +250,20 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // ── Demais recursos do shell — stale-while-revalidate ────────────────────
+  // ── Demais recursos do shell — network-first ─────────────────────────────
+  // Online: sempre pega da rede (fresco) e atualiza o cache
+  // Offline: usa o cache se disponível, mesma aparência do modo online
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const net = fetch(e.request).then(res => {
-        if (res.ok) caches.open(APP_CACHE).then(c => c.put(e.request, res.clone()));
+    fetch(e.request)
+      .then(res => {
+        if (res.ok) {
+          caches.open(APP_CACHE).then(c => c.put(e.request, res.clone())).catch(() => {});
+        }
         return res;
-      });
-      return cached || net.catch(() => new Response('Offline', { status: 503 }));
-    })
+      })
+      .catch(async () => {
+        const cached = await caches.match(e.request);
+        return cached || new Response('', { status: 503, statusText: 'Offline' });
+      })
   );
 });
