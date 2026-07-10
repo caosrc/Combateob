@@ -73,10 +73,32 @@ db.serialize(() => {
   });
 });
 
-const GESTOR_SENHA = "106106";
+const SENHA_DC = "301067";
 const EQUIPES_VALIDAS = ["Defesa Civil", "IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
+const EQUIPES_OUTROS = ["IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
 
-function auth(req, res, next) {
+// Tabela de senhas por equipe (gerenciada pela Defesa Civil)
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS gestor_senhas (
+    equipe TEXT PRIMARY KEY,
+    senha TEXT NOT NULL
+  )`);
+  // Insere senha inicial para cada equipe (mantém se já existir)
+  EQUIPES_OUTROS.forEach(eq => {
+    db.run("INSERT OR IGNORE INTO gestor_senhas (equipe, senha) VALUES (?, ?)", [eq, "106106"]);
+  });
+});
+
+function getSenhaEquipe(equipe) {
+  if (equipe === "Defesa Civil") return Promise.resolve(SENHA_DC);
+  return new Promise((resolve) => {
+    db.get("SELECT senha FROM gestor_senhas WHERE equipe = ?", [equipe], (err, row) => {
+      resolve(row ? row.senha : null);
+    });
+  });
+}
+
+async function auth(req, res, next) {
   const token = (req.headers["authorization"] || req.body.token || req.query.token || "").replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Token required" });
 
@@ -91,9 +113,12 @@ function auth(req, res, next) {
         req.user = { role: "combatente", team: "Combatente" };
         return next();
       }
-      if (role === "gestor" && payload.senha === GESTOR_SENHA && EQUIPES_VALIDAS.includes(team)) {
-        req.user = { role: "gestor", team };
-        return next();
+      if (role === "gestor" && EQUIPES_VALIDAS.includes(team)) {
+        const expectedSenha = await getSenhaEquipe(team);
+        if (expectedSenha && payload.senha === expectedSenha) {
+          req.user = { role: "gestor", team };
+          return next();
+        }
       }
     } catch (e) {}
     return res.status(401).json({ error: "Invalid token" });
@@ -104,6 +129,13 @@ function auth(req, res, next) {
     return next();
   } catch (e) {}
   res.status(401).json({ error: "Invalid token" });
+}
+
+function apenasDefesaCivil(req, res, next) {
+  if (req.user.role !== "gestor" || req.user.team !== "Defesa Civil") {
+    return res.status(403).json({ error: "Acesso restrito à Defesa Civil." });
+  }
+  next();
 }
 
 function parseData(raw) {
@@ -135,14 +167,32 @@ app.post("/auth/combatente", (req, res) => {
 });
 
 // ===== AUTH GESTOR =====
-app.post("/auth/gestor", (req, res) => {
+app.post("/auth/gestor", async (req, res) => {
   const { equipe, senha } = req.body;
-  const SENHA_GESTOR = "106106";
-  const equipesValidas = ["Defesa Civil", "IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
-  if (senha !== SENHA_GESTOR) return res.json({ error: "Senha incorreta" });
-  if (!equipesValidas.includes(equipe)) return res.json({ error: "Equipe inválida" });
+  if (!EQUIPES_VALIDAS.includes(equipe)) return res.json({ error: "Equipe inválida" });
+  const expectedSenha = await getSenhaEquipe(equipe);
+  if (!expectedSenha || senha !== expectedSenha) return res.json({ error: "Senha incorreta" });
   const token = jwt.sign({ role: "gestor", team: equipe }, SECRET);
   res.json({ token, role: "gestor", team: equipe });
+});
+
+// ===== ADMIN: GERENCIAR SENHAS (apenas Defesa Civil) =====
+app.get("/admin/senhas", auth, apenasDefesaCivil, (req, res) => {
+  db.all("SELECT equipe, senha FROM gestor_senhas ORDER BY equipe", (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ senhas: rows });
+  });
+});
+
+app.put("/admin/senha/:equipe", auth, apenasDefesaCivil, (req, res) => {
+  const { equipe } = req.params;
+  const { senha } = req.body;
+  if (!EQUIPES_OUTROS.includes(equipe)) return res.status(400).json({ error: "Equipe inválida ou não editável." });
+  if (!senha || senha.length < 4) return res.status(400).json({ error: "Senha muito curta (mínimo 4 caracteres)." });
+  db.run("INSERT OR REPLACE INTO gestor_senhas (equipe, senha) VALUES (?, ?)", [equipe, senha], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ ok: true });
+  });
 });
 
 // ===== REGISTRAR INCÊNDIO =====
@@ -804,48 +854,58 @@ app.get("/export/kmz", auth, (req, res) => {
   });
 });
 
-// ===== EDITAR INCÊNDIO (apenas gestor) =====
+// ===== EDITAR INCÊNDIO (apenas gestor da própria equipe) =====
 app.put("/fire/:id", auth, (req, res) => {
   if (req.user.role !== "gestor") return res.status(403).json({ error: "Apenas gestores podem editar registros." });
   const { data, polygon, signature, photos, mapSnapshot } = req.body;
 
-  let area = 0;
-  if (polygon && polygon.length >= 3) {
-    try {
-      const poly = turf.polygon([[...polygon, polygon[0]]]);
-      area = turf.area(poly) / 10000;
-    } catch (e) {}
-  }
-  if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
+  db.get("SELECT team FROM fires WHERE id=?", [req.params.id], (err, row) => {
+    if (!row) return res.json({ error: "Registro não encontrado." });
+    if (row.team !== req.user.team) return res.status(403).json({ error: "Você só pode editar registros da sua própria equipe." });
 
-  db.run(
-    "UPDATE fires SET data=?, polygon=?, signature=?, photos=?, mapSnapshot=?, area=? WHERE id=?",
-    [
-      JSON.stringify(data || {}),
-      JSON.stringify(polygon || []),
-      signature || null,
-      JSON.stringify(photos || []),
-      mapSnapshot || null,
-      area,
-      req.params.id
-    ],
-    function(err) {
-      if (err) return res.json({ error: err.message });
-      if (this.changes === 0) return res.json({ error: "Registro não encontrado." });
-      res.json({ ok: true, area });
+    let area = 0;
+    if (polygon && polygon.length >= 3) {
+      try {
+        const poly = turf.polygon([[...polygon, polygon[0]]]);
+        area = turf.area(poly) / 10000;
+      } catch (e) {}
     }
-  );
+    if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
+
+    db.run(
+      "UPDATE fires SET data=?, polygon=?, signature=?, photos=?, mapSnapshot=?, area=? WHERE id=?",
+      [
+        JSON.stringify(data || {}),
+        JSON.stringify(polygon || []),
+        signature || null,
+        JSON.stringify(photos || []),
+        mapSnapshot || null,
+        area,
+        req.params.id
+      ],
+      function(err) {
+        if (err) return res.json({ error: err.message });
+        res.json({ ok: true, area });
+      }
+    );
+  });
 });
 
-// ===== APAGAR INCÊNDIO (apenas gestor + senha) =====
-app.delete("/fire/:id", auth, (req, res) => {
+// ===== APAGAR INCÊNDIO (apenas gestor da própria equipe + senha) =====
+app.delete("/fire/:id", auth, async (req, res) => {
   if (req.user.role !== "gestor") return res.status(403).json({ error: "Apenas gestores podem apagar registros." });
   const { senha } = req.body;
-  if (senha !== GESTOR_SENHA) return res.status(403).json({ error: "Senha de gestor incorreta." });
-  db.run("DELETE FROM fires WHERE id=?", [req.params.id], function(err) {
-    if (err) return res.json({ error: err.message });
-    if (this.changes === 0) return res.json({ error: "Registro não encontrado." });
-    res.json({ ok: true });
+  const expectedSenha = await getSenhaEquipe(req.user.team);
+  if (!expectedSenha || senha !== expectedSenha) return res.status(403).json({ error: "Senha de gestor incorreta." });
+
+  db.get("SELECT team FROM fires WHERE id=?", [req.params.id], (err, row) => {
+    if (!row) return res.json({ error: "Registro não encontrado." });
+    if (row.team !== req.user.team) return res.status(403).json({ error: "Você só pode apagar registros da sua própria equipe." });
+    db.run("DELETE FROM fires WHERE id=?", [req.params.id], function(err) {
+      if (err) return res.json({ error: err.message });
+      if (this.changes === 0) return res.json({ error: "Registro não encontrado." });
+      res.json({ ok: true });
+    });
   });
 });
 

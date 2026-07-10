@@ -138,7 +138,7 @@
         <input type="password" id="senha-gestor" placeholder="Senha" autocomplete="current-password"
                onkeydown="if(event.key==='Enter') entrarGestor()">
       </div>
-      <button class="btn btn-primary" onclick="entrarGestor()" style="margin-bottom:10px;">Entrar como Gestor</button>
+      <button class="btn btn-primary" id="btn-entrar-gestor" onclick="entrarGestor()" style="margin-bottom:10px;">Entrar como Gestor</button>
       <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="voltarEquipes()">← Voltar</button>
     </div>
 
@@ -302,7 +302,8 @@
     return b64 + ".local";
   }
 
-  const SENHA_GESTOR_LOCAL = "106106";
+  // Senha local da Defesa Civil (funciona offline)
+  const SENHA_DC_LOCAL = "301067";
   const EQUIPES_VALIDAS_LOCAL = ["Defesa Civil", "IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
 
   // ── Entrar como Combatente ─────────────────────────────────────────────
@@ -323,37 +324,61 @@
   }
 
   // ── Entrar como Gestor ─────────────────────────────────────────────────
-  // Valida a senha localmente e gera o token na hora — funciona offline.
-  function entrarGestor() {
+  // Defesa Civil: valida localmente (funciona offline).
+  // Outros setores: sempre valida no servidor (senha gerenciada pela Defesa Civil).
+  async function entrarGestor() {
     const senha   = document.getElementById("senha-gestor").value;
     const errorEl = document.getElementById("error-msg");
+    const btnEntrar = document.getElementById("btn-entrar-gestor");
     errorEl.style.display = "none";
     if (!senha) { errorEl.textContent = "Digite a senha."; errorEl.style.display = "block"; return; }
-
-    if (senha !== SENHA_GESTOR_LOCAL) {
-      errorEl.textContent = "Senha incorreta";
-      errorEl.style.display = "block";
-      return;
-    }
     if (!EQUIPES_VALIDAS_LOCAL.includes(equipeSelecionada)) {
-      errorEl.textContent = "Equipe inválida";
-      errorEl.style.display = "block";
-      return;
+      errorEl.textContent = "Equipe inválida"; errorEl.style.display = "block"; return;
     }
 
-    const token = gerarTokenLocal({ role: "gestor", team: equipeSelecionada, senha });
-    salvarTokenOffline("gestor", equipeSelecionada, token);
-    entrarComToken(token, "gestor", equipeSelecionada);
+    if (equipeSelecionada === "Defesa Civil") {
+      // Validação local — funciona offline
+      if (senha !== SENHA_DC_LOCAL) {
+        errorEl.textContent = "Senha incorreta";
+        errorEl.style.display = "block";
+        return;
+      }
+      const token = gerarTokenLocal({ role: "gestor", team: equipeSelecionada, senha });
+      salvarTokenOffline("gestor", equipeSelecionada, token);
+      entrarComToken(token, "gestor", equipeSelecionada);
+      // Token oficial em segundo plano
+      fetch("/auth/gestor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ equipe: equipeSelecionada, senha })
+      }).then(r => r.json()).then(d => { if (d.token) salvarTokenOffline("gestor", equipeSelecionada, d.token); }).catch(() => {});
 
-    // Tenta obter um token "oficial" do servidor em segundo plano (best-effort)
-    fetch("/auth/gestor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ equipe: equipeSelecionada, senha })
-    })
-      .then(r => r.json())
-      .then(d => { if (d.token) salvarTokenOffline("gestor", equipeSelecionada, d.token); })
-      .catch(() => {});
+    } else {
+      // Outros setores: obrigatório validar no servidor (senha definida pela Defesa Civil)
+      if (btnEntrar) { btnEntrar.disabled = true; btnEntrar.textContent = "Verificando..."; }
+      try {
+        const res = await fetch("/auth/gestor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ equipe: equipeSelecionada, senha })
+        });
+        const d = await res.json();
+        if (d.error) {
+          errorEl.textContent = d.error;
+          errorEl.style.display = "block";
+          return;
+        }
+        if (d.token) {
+          salvarTokenOffline("gestor", equipeSelecionada, d.token);
+          entrarComToken(d.token, "gestor", equipeSelecionada);
+        }
+      } catch (e) {
+        errorEl.textContent = "📴 Sem conexão. Tente novamente quando houver internet.";
+        errorEl.style.display = "block";
+      } finally {
+        if (btnEntrar) { btnEntrar.disabled = false; btnEntrar.textContent = "Entrar como Gestor"; }
+      }
+    }
   }
 </script>
 </body>

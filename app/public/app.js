@@ -1,6 +1,7 @@
 // ==================== AUTH ====================
 const role = localStorage.getItem("role");
 const token = localStorage.getItem("token");
+const userTeam = localStorage.getItem("team") || "";
 
 if (!role || !token) {
   window.location.href = "/login.html";
@@ -980,7 +981,7 @@ function renderDashboardData(data, fromCache) {
     _editRows[r.id] = r;
     const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
     const nomeEquipe = d.nomeEquipe || r.team || "–";
-    const editBtn = role === "gestor"
+    const editBtn = (role === "gestor" && r.team === userTeam)
       ? `<button class="btn btn-sm btn-edit" onclick="editarRegistro(${r.id})">✏️ Editar</button>`
       : "";
     return `<tr>
@@ -1023,6 +1024,69 @@ async function loadDashboard() {
   }
 
   renderDashboardData(data, fromCache);
+
+  // Painel de senhas: só para Defesa Civil
+  if (role === "gestor" && userTeam === "Defesa Civil") {
+    const painel = document.getElementById("painel-senhas-dc");
+    if (painel) painel.style.display = "block";
+    await carregarPainelSenhas();
+  }
+}
+
+// ==================== PAINEL DE SENHAS (Defesa Civil) ====================
+async function carregarPainelSenhas() {
+  const lista = document.getElementById("senhas-lista");
+  if (!lista) return;
+  try {
+    const res = await fetch("/admin/senhas", { headers: { "Authorization": token } });
+    if (!respostaValida(res)) { lista.innerHTML = '<p style="color:#c0392b; font-size:13px;">Erro ao carregar senhas.</p>'; return; }
+    const d = await res.json();
+    lista.innerHTML = d.senhas.map(s => `
+      <div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f0f0f0;">
+        <span style="flex:1; font-weight:600; font-size:14px; color:#333;">${s.equipe}</span>
+        <input type="text" id="senha-input-${s.equipe.replace(/\s/g,'_')}"
+               value="${s.senha}"
+               style="border:1.5px solid #ddd; border-radius:8px; padding:6px 10px; font-size:13px; width:130px; font-family:inherit;"
+               placeholder="Nova senha">
+        <button onclick="salvarSenhaEquipe('${s.equipe}')"
+                style="background:#1a3a5c; color:#fff; border:none; border-radius:8px; padding:7px 14px; font-size:13px; font-family:inherit; cursor:pointer; font-weight:600; white-space:nowrap;">
+          💾 Salvar
+        </button>
+      </div>
+    `).join("") || '<p style="color:#888; font-size:13px;">Nenhum setor encontrado.</p>';
+  } catch (e) {
+    lista.innerHTML = '<p style="color:#c0392b; font-size:13px;">📴 Sem conexão — não foi possível carregar as senhas.</p>';
+  }
+}
+
+async function salvarSenhaEquipe(equipe) {
+  const inputId = "senha-input-" + equipe.replace(/\s/g, "_");
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const senha = input.value.trim();
+  if (senha.length < 4) { alert("A senha deve ter pelo menos 4 caracteres."); return; }
+
+  const btn = input.nextElementSibling;
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = "Salvando…";
+  try {
+    const res = await fetch(`/admin/senha/${encodeURIComponent(equipe)}`, {
+      method: "PUT",
+      headers: { "Authorization": token, "Content-Type": "application/json" },
+      body: JSON.stringify({ senha })
+    });
+    const d = await res.json();
+    if (d.ok) {
+      btn.textContent = "✅ Salvo!";
+      setTimeout(() => { btn.textContent = textoOriginal; btn.disabled = false; }, 2000);
+    } else {
+      alert("Erro: " + (d.error || "Não foi possível salvar."));
+      btn.disabled = false; btn.textContent = textoOriginal;
+    }
+  } catch (e) {
+    alert("📴 Sem conexão. Tente novamente.");
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
 }
 
 // ==================== EDITAR REGISTRO (gestor) ====================
