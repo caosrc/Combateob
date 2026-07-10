@@ -471,12 +471,13 @@
     </div>
   </div>
 
-  <!-- PAINEL DE SENHAS — visível apenas para Defesa Civil -->
-  <div id="painel-senhas-dc" style="display:none; margin:16px 0; background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,0.08); overflow:hidden;">
-    <div style="background:#1a3a5c; color:#fff; padding:14px 18px; font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;">
-      🔑 Gerenciar Senhas dos Setores
+  <!-- PAINEL DE SENHAS — visível apenas para Defesa Civil, recolhido por padrão -->
+  <div id="painel-senhas-dc" class="sobre-card" style="display:none;">
+    <div class="sobre-header" onclick="toggleSenhasDC()" style="background:#1a3a5c; color:#fff; border-radius:14px;">
+      <span>🔑 Gerenciar Senhas dos Setores</span>
+      <span class="sobre-chevron" id="senhas-dc-chevron">▲</span>
     </div>
-    <div style="padding:16px;" id="senhas-lista">
+    <div id="senhas-lista" style="display:none; padding:16px;">
       <p style="color:#888; font-size:13px;">Carregando senhas…</p>
     </div>
   </div>

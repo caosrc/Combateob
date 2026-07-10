@@ -1025,11 +1025,26 @@ async function loadDashboard() {
 
   renderDashboardData(data, fromCache);
 
-  // Painel de senhas: só para Defesa Civil
+  // Painel de senhas: só para Defesa Civil (recolhido por padrão)
   if (role === "gestor" && userTeam === "Defesa Civil") {
     const painel = document.getElementById("painel-senhas-dc");
     if (painel) painel.style.display = "block";
-    await carregarPainelSenhas();
+  }
+}
+
+let _senhasDCCarregadas = false;
+
+function toggleSenhasDC() {
+  const corpo = document.getElementById("senhas-lista");
+  const chevron = document.getElementById("senhas-dc-chevron");
+  if (!corpo) return;
+  const aberto = corpo.style.display !== "none";
+  corpo.style.display = aberto ? "none" : "block";
+  if (chevron) chevron.textContent = aberto ? "▲" : "▼";
+  // Carrega as senhas do servidor na primeira vez que abrir
+  if (!aberto && !_senhasDCCarregadas) {
+    _senhasDCCarregadas = true;
+    carregarPainelSenhas();
   }
 }
 
