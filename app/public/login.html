@@ -354,30 +354,46 @@
       }).then(r => r.json()).then(d => { if (d.token) salvarTokenOffline("gestor", equipeSelecionada, d.token); }).catch(() => {});
 
     } else {
-      // Outros setores: obrigatório validar no servidor (senha definida pela Defesa Civil)
+      // Outros setores: tenta validar no servidor (5s timeout).
+      // Se o servidor confirmar → usa token do servidor.
+      // Se o servidor disser senha errada → mostra erro.
+      // Se o servidor não responder → usa token local (offline-first, igual ao Combatente).
+      //   O servidor valida o token local nas chamadas de API subsequentes.
       if (btnEntrar) { btnEntrar.disabled = true; btnEntrar.textContent = "Verificando..."; }
+
       try {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 5000);
+
         const res = await fetch("/auth/gestor", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ equipe: equipeSelecionada, senha })
+          body: JSON.stringify({ equipe: equipeSelecionada, senha }),
+          signal: ctrl.signal
         });
         const d = await res.json();
+
         if (d.error) {
+          // Servidor respondeu: senha incorreta ou equipe inválida
           errorEl.textContent = d.error;
           errorEl.style.display = "block";
+          if (btnEntrar) { btnEntrar.disabled = false; btnEntrar.textContent = "Entrar como Gestor"; }
           return;
         }
         if (d.token) {
           salvarTokenOffline("gestor", equipeSelecionada, d.token);
           entrarComToken(d.token, "gestor", equipeSelecionada);
+          return;
         }
-      } catch (e) {
-        errorEl.textContent = "📴 Sem conexão. Tente novamente quando houver internet.";
-        errorEl.style.display = "block";
-      } finally {
-        if (btnEntrar) { btnEntrar.disabled = false; btnEntrar.textContent = "Entrar como Gestor"; }
+        // Resposta inesperada → cai no fallback abaixo
+      } catch (_) {
+        // Rede inacessível ou timeout → cai no fallback abaixo
       }
+
+      // Fallback offline-first: gera token local (como Defesa Civil e Combatente)
+      const tokenLocal = gerarTokenLocal({ role: "gestor", team: equipeSelecionada, senha });
+      salvarTokenOffline("gestor", equipeSelecionada, tokenLocal);
+      entrarComToken(tokenLocal, "gestor", equipeSelecionada);
     }
   }
 </script>
