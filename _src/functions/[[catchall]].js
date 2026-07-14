@@ -42,6 +42,15 @@ async function getSenhaEquipe(DB, equipe) {
   return row ? row.senha : null;
 }
 
+// Determina a equipe "dona" do registro: para combatentes, é a equipe escolhida
+// no formulário (data.nomeEquipe); para gestores, é a equipe do próprio login.
+function equipeDoRegistro(user, data) {
+  if (user.role === "combatente" && data && EQUIPES_VALIDAS.includes(data.nomeEquipe)) {
+    return data.nomeEquipe;
+  }
+  return user.team;
+}
+
 async function getAuth(request, env) {
   const header = request.headers.get("Authorization") || "";
   const url = new URL(request.url);
@@ -76,10 +85,23 @@ async function initDB(DB) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       data TEXT NOT NULL DEFAULT '{}', area REAL DEFAULT 0, team TEXT,
       polygon TEXT DEFAULT '[]', photos TEXT DEFAULT '[]',
-      signature TEXT, createdAt TEXT NOT NULL)`),
+      signature TEXT, mapSnapshot TEXT, createdAt TEXT NOT NULL)`),
     DB.prepare(`CREATE TABLE IF NOT EXISTS gestor_senhas (
       equipe TEXT PRIMARY KEY, senha TEXT NOT NULL)`)
   ]);
+  try { await DB.prepare(`ALTER TABLE fires ADD COLUMN mapSnapshot TEXT`).run(); } catch (_) {}
+  // Migração: registros antigos de combatentes gravavam team="Combatente" em vez da
+  // equipe responsável (data.nomeEquipe). Corrige para o gestor certo poder gerenciar.
+  try {
+    const { results } = await DB.prepare("SELECT id, data FROM fires WHERE team = 'Combatente' OR team IS NULL").all();
+    for (const row of results || []) {
+      let nomeEquipe = null;
+      try { nomeEquipe = JSON.parse(row.data || "{}").nomeEquipe; } catch (_) {}
+      if (nomeEquipe && EQUIPES_VALIDAS.includes(nomeEquipe)) {
+        await DB.prepare("UPDATE fires SET team = ? WHERE id = ?").bind(nomeEquipe, row.id).run();
+      }
+    }
+  } catch (_) {}
   const row = await DB.prepare("SELECT COUNT(*) as c FROM users").first();
   if (!row || row.c === 0) {
     const ah = bcrypt.hashSync("admin123", 10);
@@ -511,7 +533,7 @@ export async function onRequest(context) {
     if (!user) return json({ error: "Token required" }, 401);
     try {
       const body = await request.json();
-      const { data, polygon, signature, photos } = body;
+      const { data, polygon, signature, photos, mapSnapshot } = body;
       let area = 0;
       if (polygon && polygon.length >= 3) {
         try { area = turf.area(turf.polygon([[...polygon, polygon[0]]])) / 10000; }
@@ -520,14 +542,64 @@ export async function onRequest(context) {
       if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
 
       const result = await env.DB.prepare(
-        "INSERT INTO fires (data,area,team,polygon,photos,signature,createdAt) VALUES (?,?,?,?,?,?,?)"
+        "INSERT INTO fires (data,area,team,polygon,photos,signature,mapSnapshot,createdAt) VALUES (?,?,?,?,?,?,?,?)"
       ).bind(
-        JSON.stringify(data || {}), area, user.team,
+        JSON.stringify(data || {}), area, equipeDoRegistro(user, data),
         JSON.stringify(polygon || []), JSON.stringify(photos || []),
-        signature || null, new Date().toISOString()
+        signature || null, mapSnapshot || null, new Date().toISOString()
       ).run();
 
       return json({ ok: true, area, id: result.meta.last_row_id });
+    } catch (e) { return json({ error: e.message }, 500); }
+  }
+
+  // ── PUT /fire/:id (editar — apenas gestor da própria equipe) ──
+  const fireIdMatch = path.match(/^\/fire\/(\d+)$/);
+  if (fireIdMatch && method === "PUT") {
+    const user = await getAuth(request, env);
+    if (!user) return json({ error: "Token required" }, 401);
+    if (user.role !== "gestor") return json({ error: "Apenas gestores podem editar registros." }, 403);
+    try {
+      const id = parseInt(fireIdMatch[1]);
+      const row = await env.DB.prepare("SELECT team FROM fires WHERE id=?").bind(id).first();
+      if (!row) return json({ error: "Registro não encontrado." });
+      if (row.team !== user.team) return json({ error: "Você só pode editar registros da sua própria equipe." }, 403);
+
+      const { data, polygon, signature, photos, mapSnapshot } = await request.json();
+      let area = 0;
+      if (polygon && polygon.length >= 3) {
+        try { area = turf.area(turf.polygon([[...polygon, polygon[0]]])) / 10000; } catch (_) {}
+      }
+      if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
+
+      await env.DB.prepare(
+        "UPDATE fires SET data=?, polygon=?, signature=?, photos=?, mapSnapshot=?, area=? WHERE id=?"
+      ).bind(
+        JSON.stringify(data || {}), JSON.stringify(polygon || []),
+        signature || null, JSON.stringify(photos || []), mapSnapshot || null, area, id
+      ).run();
+
+      return json({ ok: true, area });
+    } catch (e) { return json({ error: e.message }, 500); }
+  }
+
+  // ── DELETE /fire/:id (apagar — apenas gestor da própria equipe + senha) ──
+  if (fireIdMatch && method === "DELETE") {
+    const user = await getAuth(request, env);
+    if (!user) return json({ error: "Token required" }, 401);
+    if (user.role !== "gestor") return json({ error: "Apenas gestores podem apagar registros." }, 403);
+    try {
+      const { senha } = await request.json();
+      const expectedSenha = await getSenhaEquipe(env.DB, user.team);
+      if (!expectedSenha || senha !== expectedSenha) return json({ error: "Senha de gestor incorreta." }, 403);
+
+      const id = parseInt(fireIdMatch[1]);
+      const row = await env.DB.prepare("SELECT team FROM fires WHERE id=?").bind(id).first();
+      if (!row) return json({ error: "Registro não encontrado." });
+      if (row.team !== user.team) return json({ error: "Você só pode apagar registros da sua própria equipe." }, 403);
+
+      await env.DB.prepare("DELETE FROM fires WHERE id=?").bind(id).run();
+      return json({ ok: true });
     } catch (e) { return json({ error: e.message }, 500); }
   }
 
@@ -602,11 +674,11 @@ export async function onRequest(context) {
           } else if (fire.data && fire.data.areaAtingida) area = parseFloat(fire.data.areaAtingida) || 0;
         } catch {}
         await env.DB.prepare(
-          "INSERT INTO fires (data,area,team,polygon,photos,signature,createdAt) VALUES (?,?,?,?,?,?,?)"
+          "INSERT INTO fires (data,area,team,polygon,photos,signature,mapSnapshot,createdAt) VALUES (?,?,?,?,?,?,?,?)"
         ).bind(
-          JSON.stringify(fire.data || {}), area, user.team,
-          JSON.stringify(fire.polygon || []), "[]",
-          fire.signature || null, fire.createdAt || new Date().toISOString()
+          JSON.stringify(fire.data || {}), area, equipeDoRegistro(user, fire.data),
+          JSON.stringify(fire.polygon || []), JSON.stringify(fire.photos || []),
+          fire.signature || null, fire.mapSnapshot || null, fire.createdAt || new Date().toISOString()
         ).run();
         count++;
       }

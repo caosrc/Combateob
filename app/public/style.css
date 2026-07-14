@@ -1351,6 +1351,17 @@ html, body {
 }
 .btn-edit:hover { background: #ffe0b2; }
 
+.btn-delete {
+  background: #fdecea;
+  color: #c0392b;
+  border: 1.5px solid #f5b7b1;
+  border-radius: 8px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-delete:hover { background: #fadbd8; }
+
 /* ===================== SCROLLBAR ===================== */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

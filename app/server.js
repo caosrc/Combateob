@@ -63,6 +63,18 @@ db.serialize(() => {
   )`);
   // Adiciona coluna se DB já existia sem ela
   db.run(`ALTER TABLE fires ADD COLUMN mapSnapshot TEXT`, () => {});
+  // Migração: registros antigos de combatentes gravavam team="Combatente" em vez da
+  // equipe responsável (data.nomeEquipe). Corrige para o gestor certo poder gerenciar.
+  db.all("SELECT id, data FROM fires WHERE team = 'Combatente' OR team IS NULL", (err, rows) => {
+    if (err || !rows) return;
+    rows.forEach(row => {
+      let nomeEquipe = null;
+      try { nomeEquipe = JSON.parse(row.data || "{}").nomeEquipe; } catch (_) {}
+      if (nomeEquipe && EQUIPES_VALIDAS.includes(nomeEquipe)) {
+        db.run("UPDATE fires SET team = ? WHERE id = ?", [nomeEquipe, row.id]);
+      }
+    });
+  });
   db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
     if (row && row.count === 0) {
       db.run("INSERT INTO users (username, password, team) VALUES (?, ?, ?)",
@@ -196,6 +208,15 @@ app.put("/admin/senha/:equipe", auth, apenasDefesaCivil, (req, res) => {
 });
 
 // ===== REGISTRAR INCÊNDIO =====
+// Determina a equipe "dona" do registro: para combatentes, é a equipe escolhida
+// no formulário (data.nomeEquipe); para gestores, é a equipe do próprio login.
+function equipeDoRegistro(user, data) {
+  if (user.role === "combatente" && data && EQUIPES_VALIDAS.includes(data.nomeEquipe)) {
+    return data.nomeEquipe;
+  }
+  return user.team;
+}
+
 app.post("/fire", auth, (req, res) => {
   const { data, polygon, signature, photos, mapSnapshot } = req.body;
   let area = 0;
@@ -211,7 +232,7 @@ app.post("/fire", auth, (req, res) => {
 
   db.run(
     "INSERT INTO fires (data, area, team, polygon, signature, photos, mapSnapshot, createdAt) VALUES (?,?,?,?,?,?,?,?)",
-    [JSON.stringify(data || {}), area, req.user.team, JSON.stringify(polygon || []), signature || null, JSON.stringify(photos || []), mapSnapshot || null, new Date().toISOString()],
+    [JSON.stringify(data || {}), area, equipeDoRegistro(req.user, data), JSON.stringify(polygon || []), signature || null, JSON.stringify(photos || []), mapSnapshot || null, new Date().toISOString()],
     function(err) {
       if (err) return res.json({ error: err.message });
       res.json({ ok: true, area, id: this.lastID });
@@ -925,7 +946,7 @@ app.post("/sync", auth, async (req, res) => {
     } catch (e) {}
     db.run(
       "INSERT INTO fires (data, area, team, polygon, signature, photos, mapSnapshot, createdAt) VALUES (?,?,?,?,?,?,?,?)",
-      [JSON.stringify(fire.data || {}), area, req.user.team, JSON.stringify(fire.polygon || []),
+      [JSON.stringify(fire.data || {}), area, equipeDoRegistro(req.user, fire.data), JSON.stringify(fire.polygon || []),
        fire.signature || null, JSON.stringify(fire.photos || []), fire.mapSnapshot || null,
        fire.createdAt || new Date().toISOString()],
       err => resolve(!err)

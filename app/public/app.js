@@ -982,8 +982,12 @@ function renderDashboardData(data, fromCache) {
     _editRows[r.id] = r;
     const d = (() => { try { return JSON.parse(r.data); } catch { return {}; } })();
     const nomeEquipe = d.nomeEquipe || r.team || "–";
-    const editBtn = (role === "gestor" && r.team === userTeam)
+    const podeGerenciar = role === "gestor" && r.team === userTeam;
+    const editBtn = podeGerenciar
       ? `<button class="btn btn-sm btn-edit" onclick="editarRegistro(${r.id})">✏️ Editar</button>`
+      : "";
+    const deleteBtn = podeGerenciar
+      ? `<button class="btn btn-sm btn-delete" onclick="apagarRegistro(${r.id})">🗑️ Excluir</button>`
       : "";
     return `<tr>
       <td>#${r.id}</td>
@@ -994,6 +998,7 @@ function renderDashboardData(data, fromCache) {
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
         <a href="/report/${r.id}" target="_blank" class="btn btn-sm btn-secondary">📄 PDF</a>
         ${editBtn}
+        ${deleteBtn}
       </td>
     </tr>`;
   }).join("");
@@ -1102,6 +1107,32 @@ async function salvarSenhaEquipe(equipe) {
   } catch (e) {
     alert("📴 Sem conexão. Tente novamente.");
     btn.disabled = false; btn.textContent = textoOriginal;
+  }
+}
+
+// ==================== APAGAR REGISTRO (gestor) ====================
+async function apagarRegistro(id) {
+  if (role !== "gestor") return;
+  const r = _editRows[id];
+  if (!r || r.team !== userTeam) return;
+
+  if (!confirm(`Tem certeza que deseja excluir o registro #${id}? Esta ação não pode ser desfeita.`)) return;
+  const senha = prompt("Digite a senha da sua equipe para confirmar a exclusão:");
+  if (!senha) return;
+
+  try {
+    const res = await fetch(`/fire/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", "Authorization": token },
+      body: JSON.stringify({ senha })
+    });
+    const d = await res.json();
+    if (d.error) { alert("❌ Erro: " + d.error); return; }
+    alert(`✅ Registro #${id} excluído.`);
+    loadDashboard();
+    if (mapInitialized) loadFiresOnMap();
+  } catch (e) {
+    alert("📴 Sem conexão. Não foi possível excluir agora.");
   }
 }
 
