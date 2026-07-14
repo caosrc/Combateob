@@ -24,7 +24,7 @@ const APP_SHELL = [
   '/apple-touch-icon-180.png',
   '/favicon-32.png',
   '/style.css?v=12',
-  '/app.js?v=12',
+  '/app.js?v=13',
   '/db.js',
 ];
 

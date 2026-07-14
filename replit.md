@@ -1,43 +1,41 @@
-# Fogo Branco — Sistema de Combate a Incêndios Florestais
+# Fogo Branco — Incêndio v3
 
-## Visão Geral
-PWA (Progressive Web App) para registro e gestão de incêndios florestais na região de Ouro Branco/MG. Funciona 100% offline após a primeira carga.
+Sistema de registo de ocorrências de incêndios florestais para brigadas de combate a incêndios.
 
 ## Stack
-- **Backend**: Node.js + Express + SQLite (`sqlite3`)
-- **Frontend**: HTML/CSS/JS vanilla + Leaflet.js
-- **Offline**: Service Worker (cache-first tiles, stale-while-revalidate shell) + IndexedDB (fila de pendentes)
-- **Auth**: JWT com suporte a tokens locais offline (base64 payload + `.local` sufixo)
-- **Exports**: PDF (pdfkit), Excel (exceljs), KMZ (archiver + @turf/turf)
+- **Backend**: Node.js + Express + SQLite (`app/server.js`)
+- **Frontend**: HTML/CSS/JS estático em `app/public/` (PWA com service worker)
+- **Auth**: tokens JWT (servidor) + tokens `.local` base64 (offline)
+- **BD**: SQLite em `app/db.sqlite`
 
-## Como rodar
+## Como correr
 ```bash
-cd app && npm install && node server.js
+cd app && node server.js
 ```
-Workflow configurado: `cd app && node server.js` (porta 5000)
+O servidor fica disponível na porta 5000.
 
-## Usuários padrão (criados se o banco estiver vazio)
-- `admin` / `admin123`
-- `brigada1` / `brigada123`
+## Workflow configurado
+- **Start application**: `cd app && node server.js`
 
-## Acesso offline (combatente)
-- Sem senha — gera token local automaticamente
-- Gestor: senha `106106`, equipes válidas: Defesa Civil, IEF, Carcará, AMDA Gerdau, AMDA IEF, CBMMG
+## Credenciais padrão
+- **Combatente**: qualquer — clica "Combatente" no login (sem senha)
+- **Gestor – Defesa Civil**: senha `301067`
+- **Gestor – outras equipes**: senha `106106` (gerenciável pela Defesa Civil)
+
+## Variáveis de ambiente
+- `SESSION_SECRET` — usado como segredo JWT. Se não definido, usa `"incendio_secret_key_v3"`.
 
 ## Estrutura
 ```
 app/
-  server.js          # API Express + SQLite
-  public/
-    index.html       # App principal (tabs: Registrar / Mapa / Dashboard)
-    login.html       # Tela de login (combatente / gestor)
-    app.js           # Lógica principal do frontend
-    db.js            # IndexedDB (fila offline, cache dashboard, ruas)
-    sw.js            # Service Worker (cache tiles OSM/satélite, shell SPA)
-    style.css        # Estilos
-    manifest.json    # PWA manifest
+  server.js       # API Express (rotas: /auth/*, /fire, /dashboard, /report, /export)
+  public/         # Frontend estático servido pelo Express
+    index.html    # App principal (aba Registrar, Mapa, Dashboard)
+    login.html    # Tela de login
+    app.js        # Lógica do frontend (v=13)
+    sw.js         # Service Worker (cache offline)
+    db.js         # IndexedDB helpers (cache local + pendentes offline)
 ```
 
 ## User preferences
-- Projeto em português (pt-BR)
-- Manter estrutura existente do projeto
+- Respostas apenas em português.

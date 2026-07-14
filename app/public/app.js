@@ -912,7 +912,8 @@ async function salvarIncendio() {
     const r = await res.json();
     if (r.error) { alert("❌ Erro: " + r.error); return; }
     closeModal();
-    alert(`✅ Incêndio registrado!\nÁrea: ${r.area.toFixed(4)} ha\nID: #${r.id}`);
+    const areaStr = (r.area != null && !isNaN(r.area)) ? r.area.toFixed(4) : "0.0000";
+    alert(`✅ Incêndio registrado!\nÁrea: ${areaStr} ha\nID: #${r.id}`);
     limparFormulario();
     if (mapInitialized) loadFiresOnMap();
   } catch (_) {

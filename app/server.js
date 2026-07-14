@@ -199,13 +199,15 @@ app.put("/admin/senha/:equipe", auth, apenasDefesaCivil, (req, res) => {
 app.post("/fire", auth, (req, res) => {
   const { data, polygon, signature, photos, mapSnapshot } = req.body;
   let area = 0;
-  if (polygon && polygon.length >= 3) {
+  if (polygon && Array.isArray(polygon) && polygon.length >= 3) {
     try {
       const poly = turf.polygon([[...polygon, polygon[0]]]);
-      area = turf.area(poly) / 10000;
+      const calculated = turf.area(poly) / 10000;
+      area = isNaN(calculated) ? 0 : calculated;
     } catch (e) { return res.json({ error: "Erro na área: " + e.message }); }
   }
   if (area === 0 && data && data.areaAtingida) area = parseFloat(data.areaAtingida) || 0;
+  if (isNaN(area)) area = 0;
 
   db.run(
     "INSERT INTO fires (data, area, team, polygon, signature, photos, mapSnapshot, createdAt) VALUES (?,?,?,?,?,?,?,?)",
