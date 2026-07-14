@@ -66,6 +66,21 @@ Após salvar as configurações, clique em **Retry deployment** (ou faça um nov
 
 ---
 
+## ⚠️ Importante: `app/public/_worker.js` é o arquivo realmente publicado
+
+O Cloudflare Pages usa `app/public/_worker.js` (modo "Advanced") como backend de produção — **não** `_src/functions/[[catchall]].js` nem `worker-entry.js` diretamente. Esses dois últimos são apenas a fonte legível; `_worker.js` é o bundle gerado a partir de `worker-entry.js` via esbuild.
+
+Sempre que `worker-entry.js` for alterado, regenere o bundle antes de dar push:
+
+```
+npm install   # primeira vez, instala jose/bcryptjs/pdf-lib/xlsx/fflate/@turf/turf/esbuild
+npm run build:worker
+```
+
+Isso sobrescreve `app/public/_worker.js` com a versão atualizada. Só depois faça commit/push — se o `_worker.js` não for regenerado, o Cloudflare continuará servindo a lógica antiga mesmo com o código-fonte corrigido.
+
+---
+
 ## Usuários padrão (criados automaticamente na 1ª requisição)
 
 | Usuário | Senha | Equipe |

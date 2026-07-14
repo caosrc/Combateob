@@ -3,6 +3,16 @@
   "version": "3.0.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler pages deploy app/public"
+    "build:worker": "esbuild build/worker-entry-wrapper.js --bundle --format=esm --platform=browser --target=es2022 --outfile=app/public/_worker.js",
+    "deploy": "npm run build:worker && wrangler pages deploy app/public"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.3.5",
+    "bcryptjs": "^3.0.3",
+    "esbuild": "^0.28.1",
+    "fflate": "^0.8.3",
+    "jose": "^6.2.3",
+    "pdf-lib": "^1.17.1",
+    "xlsx": "^0.18.5"
   }
 }
