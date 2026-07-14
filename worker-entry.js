@@ -30,6 +30,9 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
 });
 
+const EQUIPES_VALIDAS = ["Defesa Civil", "IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
+const EQUIPES_OUTROS = ["IEF", "Carcará", "AMDA Gerdau", "AMDA IEF", "CBMMG"];
+
 // ─── JWT ───────────────────────────────────────────────────────────────────────
 async function signJWT(payload, secret) {
   const key = new TextEncoder().encode(secret);
@@ -40,11 +43,31 @@ async function verifyJWT(token, secret) {
   const { payload } = await jwtVerify(token, key);
   return payload;
 }
+async function getSenhaEquipe(DB, equipe) {
+  const row = await DB.prepare("SELECT senha FROM gestor_senhas WHERE equipe = ?").bind(equipe).first();
+  return row ? row.senha : null;
+}
+
 async function getAuth(request, env) {
   const header = request.headers.get("Authorization") || "";
   const url = new URL(request.url);
   const token = header.replace("Bearer ", "") || url.searchParams.get("token") || "";
   if (!token) return null;
+
+  // Token local gerado no cliente (offline): base64(payload) + ".local"
+  if (token.endsWith(".local")) {
+    try {
+      const payloadB64 = token.slice(0, -".local".length);
+      const payload = JSON.parse(atob(payloadB64));
+      if (payload.role === "combatente") return { role: "combatente", team: "Combatente" };
+      if (payload.role === "gestor" && EQUIPES_VALIDAS.includes(payload.team)) {
+        const expectedSenha = await getSenhaEquipe(env.DB, payload.team);
+        if (expectedSenha && payload.senha === expectedSenha) return { role: "gestor", team: payload.team };
+      }
+    } catch (_) {}
+    return null;
+  }
+
   try { return await verifyJWT(token, env.JWT_SECRET || "incendio_secret_key_v3"); }
   catch { return null; }
 }
@@ -59,7 +82,9 @@ async function initDB(DB) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       data TEXT NOT NULL DEFAULT '{}', area REAL DEFAULT 0, team TEXT,
       polygon TEXT DEFAULT '[]', photos TEXT DEFAULT '[]',
-      signature TEXT, createdAt TEXT NOT NULL)`)
+      signature TEXT, createdAt TEXT NOT NULL)`),
+    DB.prepare(`CREATE TABLE IF NOT EXISTS gestor_senhas (
+      equipe TEXT PRIMARY KEY, senha TEXT NOT NULL)`)
   ]);
   const row = await DB.prepare("SELECT COUNT(*) as c FROM users").first();
   if (!row || row.c === 0) {
@@ -70,6 +95,10 @@ async function initDB(DB) {
       DB.prepare("INSERT OR IGNORE INTO users (username,password,team) VALUES (?,?,?)").bind("brigada1", bh, "Equipe Beta")
     ]);
   }
+  await DB.batch([
+    DB.prepare("INSERT OR IGNORE INTO gestor_senhas (equipe, senha) VALUES (?, ?)").bind("Defesa Civil", "301067"),
+    ...EQUIPES_OUTROS.map(eq => DB.prepare("INSERT OR IGNORE INTO gestor_senhas (equipe, senha) VALUES (?, ?)").bind(eq, "106106"))
+  ]);
 }
 
 // ─── PDF com pdf-lib ──────────────────────────────────────────────────────────
@@ -410,7 +439,7 @@ async function _onRequest(context) {
   const method = request.method;
 
   // Só intercepta rotas de API
-  const apiPrefixes = ["/login", "/fire", "/dashboard", "/sync", "/report", "/export"];
+  const apiPrefixes = ["/login", "/auth", "/admin", "/fire", "/dashboard", "/sync", "/report", "/export"];
   if (!apiPrefixes.some(p => path === p || path.startsWith(p + "/"))) {
     return context.next();
   }
@@ -431,6 +460,51 @@ async function _onRequest(context) {
 
   // Init DB (idempotente)
   try { await initDB(env.DB); } catch (e) { console.error("initDB:", e); }
+
+  // ── POST /auth/combatente ──
+  if (path === "/auth/combatente" && method === "POST") {
+    const token = await signJWT({ role: "combatente", team: "Combatente" }, env.JWT_SECRET || "incendio_secret_key_v3");
+    return json({ token, role: "combatente", team: "Combatente" });
+  }
+
+  // ── POST /auth/gestor ──
+  if (path === "/auth/gestor" && method === "POST") {
+    try {
+      const { equipe, senha } = await request.json();
+      if (!EQUIPES_VALIDAS.includes(equipe)) return json({ error: "Equipe inválida" });
+      const expectedSenha = await getSenhaEquipe(env.DB, equipe);
+      if (!expectedSenha || senha !== expectedSenha) return json({ error: "Senha incorreta" });
+      const token = await signJWT({ role: "gestor", team: equipe }, env.JWT_SECRET || "incendio_secret_key_v3");
+      return json({ token, role: "gestor", team: equipe });
+    } catch (e) { return json({ error: e.message }, 500); }
+  }
+
+  // ── GET /admin/senhas (apenas Defesa Civil) ──
+  if (path === "/admin/senhas" && method === "GET") {
+    const user = await getAuth(request, env);
+    if (!user) return json({ error: "Token required" }, 401);
+    if (user.role !== "gestor" || user.team !== "Defesa Civil") return json({ error: "Acesso restrito à Defesa Civil." }, 403);
+    try {
+      const { results } = await env.DB.prepare("SELECT equipe, senha FROM gestor_senhas ORDER BY equipe").all();
+      return json({ senhas: results });
+    } catch (e) { return json({ error: e.message }, 500); }
+  }
+
+  // ── PUT /admin/senha/:equipe (apenas Defesa Civil) ──
+  const senhaMatch = path.match(/^\/admin\/senha\/(.+)$/);
+  if (senhaMatch && method === "PUT") {
+    const user = await getAuth(request, env);
+    if (!user) return json({ error: "Token required" }, 401);
+    if (user.role !== "gestor" || user.team !== "Defesa Civil") return json({ error: "Acesso restrito à Defesa Civil." }, 403);
+    try {
+      const equipe = decodeURIComponent(senhaMatch[1]);
+      const { senha } = await request.json();
+      if (!EQUIPES_OUTROS.includes(equipe)) return json({ error: "Equipe inválida ou não editável." }, 400);
+      if (!senha || senha.length < 4) return json({ error: "Senha muito curta (mínimo 4 caracteres)." }, 400);
+      await env.DB.prepare("INSERT OR REPLACE INTO gestor_senhas (equipe, senha) VALUES (?, ?)").bind(equipe, senha).run();
+      return json({ ok: true });
+    } catch (e) { return json({ error: e.message }, 500); }
+  }
 
   // ── POST /login ──
   if (path === "/login" && method === "POST") {

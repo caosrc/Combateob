@@ -1,0 +1,1 @@
+- [Dual backend Cloudflare vs Node auth mismatch](dual-backend-cloudflare-auth.md) — projects with both an Express server and a Cloudflare Pages/Worker port must keep offline `.local` token support in sync between them.
