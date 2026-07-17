@@ -12,6 +12,35 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 
+// ===== CONVERSÃO WGS84 → UTM =====
+function wgs84ToUTM(lat, lng) {
+  const a = 6378137.0;
+  const f = 1 / 298.257223563;
+  const b = a * (1 - f);
+  const e2 = (a * a - b * b) / (a * a);
+  const ep2 = e2 / (1 - e2);
+  const k0 = 0.9996;
+  const zone = Math.floor((lng + 180) / 6) + 1;
+  const lambda0 = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180;
+  const phi = lat * Math.PI / 180;
+  const lambda = lng * Math.PI / 180;
+  const N = a / Math.sqrt(1 - e2 * Math.sin(phi) ** 2);
+  const T = Math.tan(phi) ** 2;
+  const C = ep2 * Math.cos(phi) ** 2;
+  const A = Math.cos(phi) * (lambda - lambda0);
+  const M = a * (
+    (1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256) * phi
+    - (3 * e2 / 8 + 3 * e2 ** 2 / 32 + 45 * e2 ** 3 / 1024) * Math.sin(2 * phi)
+    + (15 * e2 ** 2 / 256 + 45 * e2 ** 3 / 1024) * Math.sin(4 * phi)
+    - (35 * e2 ** 3 / 3072) * Math.sin(6 * phi)
+  );
+  const easting = k0 * N * (A + (1 - T + C) * A ** 3 / 6 + (5 - 18 * T + T ** 2 + 72 * C - 58 * ep2) * A ** 5 / 120) + 500000;
+  const northingRaw = k0 * (M + N * Math.tan(phi) * (A ** 2 / 2 + (5 - T + 9 * C + 4 * C ** 2) * A ** 4 / 24 + (61 - 58 * T + T ** 2 + 600 * C - 330 * ep2) * A ** 6 / 720));
+  const northing = lat < 0 ? northingRaw + 10000000 : northingRaw;
+  const hemisphere = lat < 0 ? "S" : "N";
+  return { zone, hemisphere, fuso: `${zone}${hemisphere}`, easting: Math.round(easting * 100) / 100, northing: Math.round(northing * 100) / 100 };
+}
+
 const UPLOADS_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -42,6 +71,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
 });
 const upload = multer({ storage });
+const uploadMemory = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -484,7 +514,9 @@ app.get("/export/excel", auth, async (req, res) => {
     const leftMid   = { horizontal: "left",   vertical: "middle", wrapText: true };
 
     const MAX_PHOTOS_COLS = 8;
-    const TOTAL_COLS = 30 + MAX_PHOTOS_COLS; // 38
+    const MAX_UTM_VERTICES = 15;
+    // Colunas: 30 dados + 8 fotos + 1 fuso + (15 vértices × 2 coords) = 69
+    const TOTAL_COLS = 30 + MAX_PHOTOS_COLS + 1 + MAX_UTM_VERTICES * 2;
 
     // ── LINHA 1: TÍTULO ──────────────────────────────────────────
     ws1.mergeCells(1, 1, 1, TOTAL_COLS);
@@ -507,14 +539,17 @@ app.get("/export/excel", auth, async (req, res) => {
     c2.alignment = centerMid;
 
     // ── LINHA 3: GRUPOS DE COLUNAS (faixa colorida) ───────────────
+    const COL_FOTOS_START = 31;
+    const COL_UTM_START   = COL_FOTOS_START + MAX_PHOTOS_COLS; // 39
     const colGroups = [
-      { label: "IDENTIFICAÇÃO",  start: 1,  end: 6,  color: "FFC0392B" },
-      { label: "LOCALIZAÇÃO",    start: 7,  end: 13, color: "FF2471A3" },
-      { label: "DETECÇÃO",       start: 14, end: 16, color: "FF117A65" },
-      { label: "CONTATO",        start: 17, end: 19, color: "FF6C3483" },
-      { label: "COMBATE",        start: 20, end: 27, color: "FF1E8449" },
-      { label: "RESULTADO",      start: 28, end: 30, color: "FF935116" },
-      { label: "FOTOS",          start: 31, end: TOTAL_COLS, color: "FF555555" },
+      { label: "IDENTIFICAÇÃO",     start: 1,             end: 6,                    color: "FFC0392B" },
+      { label: "LOCALIZAÇÃO",       start: 7,             end: 13,                   color: "FF2471A3" },
+      { label: "DETECÇÃO",          start: 14,            end: 16,                   color: "FF117A65" },
+      { label: "CONTATO",           start: 17,            end: 19,                   color: "FF6C3483" },
+      { label: "COMBATE",           start: 20,            end: 27,                   color: "FF1E8449" },
+      { label: "RESULTADO",         start: 28,            end: 30,                   color: "FF935116" },
+      { label: "FOTOS",             start: COL_FOTOS_START, end: COL_UTM_START - 1,  color: "FF555555" },
+      { label: "VÉRTICES UTM (Fuso / Easting / Northing)", start: COL_UTM_START, end: TOTAL_COLS, color: "FF1A5276" },
     ];
     const t3 = ws1.getRow(3);
     t3.height = 20;
@@ -528,6 +563,10 @@ app.get("/export/excel", auth, async (req, res) => {
     });
 
     // ── LINHA 4: CABEÇALHOS DAS COLUNAS ──────────────────────────
+    const utmVertexHeaders = ["Fuso UTM"];
+    for (let v = 1; v <= MAX_UTM_VERTICES; v++) {
+      utmVertexHeaders.push(`V${v} E (m)`, `V${v} N (m)`);
+    }
     const headers = [
       // Identificação (1-6)
       "Nº", "Data / Hora Registro", "Equipe (Sistema)",
@@ -546,7 +585,9 @@ app.get("/export/excel", auth, async (req, res) => {
       // Resultado (28-30)
       "Descrição da Ocorrência", "Área (ha)", "Qtd. Fotos",
       // Fotos (31-38)
-      ...Array.from({ length: MAX_PHOTOS_COLS }, (_, i) => `Foto ${i + 1}`)
+      ...Array.from({ length: MAX_PHOTOS_COLS }, (_, i) => `Foto ${i + 1}`),
+      // UTM (39+): Fuso + V1 E, V1 N, V2 E, V2 N, ...
+      ...utmVertexHeaders
     ];
     const t4 = ws1.getRow(4);
     t4.height = 40;
@@ -564,6 +605,7 @@ app.get("/export/excel", auth, async (req, res) => {
     ws1.views = [{ state: "frozen", ySplit: 4, xSplit: 1 }];
 
     // ── LARGURAS DAS COLUNAS ──────────────────────────────────────
+    const utmColWidths = [8, ...Array(MAX_UTM_VERTICES * 2).fill(14)]; // Fuso + E/N por vértice
     const colWidths = [
       9, 20, 18, 26, 24, 40,          // Identificação
       18, 28, 11, 11, 28, 18, 7,      // Localização
@@ -571,7 +613,8 @@ app.get("/export/excel", auth, async (req, res) => {
       24, 20, 16,                      // Contato
       13, 10, 13, 10, 22, 22, 12, 24, // Combate
       38, 12, 8,                       // Resultado
-      ...Array(MAX_PHOTOS_COLS).fill(19) // Fotos
+      ...Array(MAX_PHOTOS_COLS).fill(19), // Fotos
+      ...utmColWidths                  // UTM
     ];
     ws1.columns = colWidths.map(w => ({ width: w }));
 
@@ -585,6 +628,25 @@ app.get("/export/excel", auth, async (req, res) => {
       const d = parseData(r.data);
       const photos = (() => { try { return JSON.parse(r.photos || "[]"); } catch { return []; } })();
       const photoPlaceholders = Array(MAX_PHOTOS_COLS).fill("");
+
+      // Vértices UTM
+      let poly = (() => { try { let p = JSON.parse(r.polygon || "[]"); if (p.length > 0 && Array.isArray(p[0]) && Array.isArray(p[0][0])) p = p[0]; return p; } catch { return []; } })();
+      let fusoUTM = "";
+      const utmValues = [];
+      if (poly.length >= 3) {
+        const firstUtm = wgs84ToUTM(poly[0][1], poly[0][0]);
+        fusoUTM = firstUtm.fuso;
+        for (let vi = 0; vi < MAX_UTM_VERTICES; vi++) {
+          if (vi < poly.length) {
+            const utm = wgs84ToUTM(poly[vi][1], poly[vi][0]);
+            utmValues.push(parseFloat(utm.easting.toFixed(2)), parseFloat(utm.northing.toFixed(2)));
+          } else {
+            utmValues.push("", "");
+          }
+        }
+      } else {
+        for (let vi = 0; vi < MAX_UTM_VERTICES; vi++) utmValues.push("", "");
+      }
 
       const dataRow = ws1.addRow([
         `#${String(r.id).padStart(4, "0")}`,
@@ -617,7 +679,9 @@ app.get("/export/excel", auth, async (req, res) => {
         d.descricao || "",
         r.area ? parseFloat(r.area.toFixed(4)) : "",
         photos.length,
-        ...photoPlaceholders
+        ...photoPlaceholders,
+        fusoUTM,
+        ...utmValues
       ]);
 
       const bg = ri % 2 === 0 ? "FFFFFFFF" : "FFF5F5F5";
@@ -838,6 +902,99 @@ app.get("/export/excel", auth, async (req, res) => {
       res.status(500).json({ error: "Erro ao gerar Excel: " + e.message });
     }
   });
+});
+
+// ===== IMPORTAR EXCEL =====
+app.post("/import/excel", auth, uploadMemory.single("file"), async (req, res) => {
+  if (req.user.role !== "gestor") return res.status(403).json({ error: "Apenas gestores podem importar registros." });
+  if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado." });
+
+  try {
+    const wb = XLSX.read(req.file.buffer, { type: "buffer", cellDates: true });
+    const ws = wb.Sheets["Registros"];
+    if (!ws) return res.status(400).json({ error: "Planilha 'Registros' não encontrada no arquivo." });
+
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+    // Cabeçalhos nas linhas 1-4; dados a partir da linha 5 (índice 4)
+    const dataRows = rows.slice(4).filter(r => r[0] && String(r[0]).trim());
+
+    if (dataRows.length === 0) return res.json({ ok: true, importados: 0, ignorados: 0, msg: "Nenhuma linha de dados encontrada." });
+
+    const fmtDateBack = (val) => {
+      if (!val) return "";
+      const s = String(val).trim();
+      // dd/mm/yyyy → yyyy-mm-dd
+      const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+      // Se já é Date object (xlsx com cellDates)
+      if (val instanceof Date) return val.toISOString().slice(0, 10);
+      return s;
+    };
+
+    const ucBack = (v) => {
+      const s = String(v || "").toLowerCase();
+      if (s === "sim") return "sim";
+      if (s === "não" || s === "nao") return "nao";
+      return v || "";
+    };
+
+    let importados = 0, ignorados = 0, erros = [];
+
+    for (const row of dataRows) {
+      try {
+        const data = {
+          brigadista:       String(row[3] || ""),
+          nomeEquipe:       String(row[4] || ""),
+          brigadistas:      String(row[5] || ""),
+          municipio:        String(row[6] || ""),
+          coordStr:         String(row[7] || ""),
+          lat:              row[8] !== "" ? parseFloat(row[8]) : null,
+          lng:              row[9] !== "" ? parseFloat(row[9]) : null,
+          localReferencia:  String(row[10] || ""),
+          local:            String(row[11] || ""),
+          uc:               ucBack(row[12]),
+          dataDeteccao:     fmtDateBack(row[13]),
+          horaDeteccao:     String(row[14] || ""),
+          formaDeteccao:    String(row[15] || ""),
+          nomeContato:      String(row[16] || ""),
+          orgaoContato:     String(row[17] || ""),
+          telefoneContato:  String(row[18] || ""),
+          inicioData:       fmtDateBack(row[19]),
+          inicioHora:       String(row[20] || ""),
+          debeladoData:     fmtDateBack(row[21]),
+          debeladoHora:     String(row[22] || ""),
+          pessoal:          String(row[23] || ""),
+          veiculos:         String(row[24] || ""),
+          alimentacao:      ucBack(row[25]),
+          causa:            String(row[26] || ""),
+          descricao:        String(row[27] || ""),
+        };
+
+        const area = row[28] !== "" ? parseFloat(row[28]) || 0 : 0;
+        const team = equipeDoRegistro(req.user, data);
+
+        // Verifica se já existe um registo idêntico (mesmo brigadista + equipe + data criação)
+        // Usamos createdAt extraído da coluna "Data / Hora Registro" (col 1) como referência
+        const rawDate = String(row[1] || "").trim();
+
+        await new Promise((resolve, reject) => {
+          db.run(
+            "INSERT INTO fires (data, area, team, polygon, signature, photos, mapSnapshot, createdAt) VALUES (?,?,?,?,?,?,?,?)",
+            [JSON.stringify(data), area, team, "[]", null, "[]", null, new Date().toISOString()],
+            function(err) { if (err) reject(err); else resolve(this.lastID); }
+          );
+        });
+        importados++;
+      } catch (e) {
+        ignorados++;
+        erros.push(String(row[0]) + ": " + e.message);
+      }
+    }
+
+    res.json({ ok: true, importados, ignorados, erros: erros.slice(0, 10) });
+  } catch (e) {
+    res.status(500).json({ error: "Erro ao processar planilha: " + e.message });
+  }
 });
 
 // ===== EXPORT KMZ =====

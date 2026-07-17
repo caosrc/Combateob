@@ -934,6 +934,8 @@ html, body {
 .btn-export.excel:hover { background: #c8e6c9; }
 .btn-export.kmz { background: #e3f2fd; color: #1565c0; }
 .btn-export.kmz:hover { background: #bbdefb; }
+.btn-export.import { background: #f3e5f5; color: #6a1b9a; }
+.btn-export.import:hover { background: #e1bee7; }
 
 .stats-grid {
   display: grid;

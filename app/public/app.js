@@ -1247,6 +1247,44 @@ function cancelarEdicao() {
   switchTab("dashboard");
 }
 
+// ==================== IMPORTAR PLANILHA ====================
+async function importarPlanilha(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = "";
+
+  if (!confirm(`Importar registros do ficheiro "${file.name}"?\n\nRegistros da planilha serão adicionados ao sistema. Duplicados não são verificados automaticamente.`)) return;
+
+  const label = document.querySelector("label[for='input-import-xlsx']");
+  if (label) { label.textContent = "⏳ Importando..."; label.style.pointerEvents = "none"; }
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/import/excel", {
+      method: "POST",
+      headers: { "Authorization": token },
+      body: formData
+    });
+
+    if (!respostaValida(res)) throw new Error("Resposta inválida do servidor.");
+    const r = await res.json();
+
+    if (r.error) { alert("❌ Erro: " + r.error); return; }
+
+    const errosTxt = r.erros && r.erros.length > 0 ? "\n\nLinhas com erro:\n" + r.erros.join("\n") : "";
+    alert(`✅ Importação concluída!\n\nImportados: ${r.importados}\nIgnorados: ${r.ignorados}${errosTxt}`);
+
+    loadDashboard();
+    if (mapInitialized) loadFiresOnMap();
+  } catch (e) {
+    alert("❌ Erro na importação: " + e.message);
+  } finally {
+    if (label) { label.textContent = "📥 Importar"; label.style.pointerEvents = ""; }
+  }
+}
+
 // ==================== EXPORTS ====================
 async function exportarExcel() {
   const btn = document.querySelector(".btn-export.excel");

@@ -430,6 +430,8 @@
       <div class="export-buttons">
         <button class="btn-export excel" onclick="exportarExcel()">📊 Excel</button>
         <button class="btn-export kmz" onclick="exportarKMZ()">🌍 KMZ</button>
+        <label class="btn-export import" for="input-import-xlsx" title="Importar registros de planilha Excel">📥 Importar</label>
+        <input type="file" id="input-import-xlsx" accept=".xlsx,.xls" style="display:none" onchange="importarPlanilha(this)">
       </div>
     </div>
 
